@@ -20,7 +20,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, join } from 'node:path'
+import { basename, join, resolve } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import {
   BrowserWindow,
@@ -32,6 +32,7 @@ import {
   ipcMain,
   nativeImage,
   net,
+  session,
   shell,
 } from 'electron'
 import {
@@ -245,7 +246,7 @@ const tMain = createI18n({
     menuWindow: '窗口',
     menuHelp: '帮助',
     menuShortcuts: '键盘快捷键',
-    menuDocsHelp: 'GenOffice Docs 帮助',
+    menuDocsHelp: 'Manuscriber 帮助',
   },
   en: {
     dlgOpenDoc: 'Open Document',
@@ -342,7 +343,7 @@ const tMain = createI18n({
     menuWindow: 'Window',
     menuHelp: 'Help',
     menuShortcuts: 'Keyboard Shortcuts',
-    menuDocsHelp: 'GenOffice Docs Help',
+    menuDocsHelp: 'Manuscriber Help',
   },
   ja: {
     dlgOpenDoc: '文書を開く',
@@ -439,7 +440,7 @@ const tMain = createI18n({
     menuWindow: 'ウィンドウ',
     menuHelp: 'ヘルプ',
     menuShortcuts: 'キーボードショートカット',
-    menuDocsHelp: 'GenOffice Docs ヘルプ',
+    menuDocsHelp: 'Manuscriber ヘルプ',
   },
   ko: {
     dlgOpenDoc: '문서 열기',
@@ -537,7 +538,7 @@ const tMain = createI18n({
     menuWindow: '창',
     menuHelp: '도움말',
     menuShortcuts: '키보드 바로 가기',
-    menuDocsHelp: 'GenOffice Docs 도움말',
+    menuDocsHelp: 'Manuscriber 도움말',
   },
   fr: {
     dlgOpenDoc: 'Ouvrir un document',
@@ -636,7 +637,7 @@ const tMain = createI18n({
     menuWindow: 'Fenêtre',
     menuHelp: 'Aide',
     menuShortcuts: 'Raccourcis clavier',
-    menuDocsHelp: 'Aide GenOffice Docs',
+    menuDocsHelp: 'Aide Manuscriber',
   },
   de: {
     dlgOpenDoc: 'Dokument öffnen',
@@ -735,7 +736,7 @@ const tMain = createI18n({
     menuWindow: 'Fenster',
     menuHelp: 'Hilfe',
     menuShortcuts: 'Tastenkombinationen',
-    menuDocsHelp: 'GenOffice Docs-Hilfe',
+    menuDocsHelp: 'Manuscriber-Hilfe',
   },
   es: {
     dlgOpenDoc: 'Abrir documento',
@@ -834,7 +835,7 @@ const tMain = createI18n({
     menuWindow: 'Ventana',
     menuHelp: 'Ayuda',
     menuShortcuts: 'Atajos de teclado',
-    menuDocsHelp: 'Ayuda de GenOffice Docs',
+    menuDocsHelp: 'Ayuda de Manuscriber',
   },
   th: {
     dlgOpenDoc: 'เปิดเอกสาร',
@@ -931,7 +932,7 @@ const tMain = createI18n({
     menuWindow: 'หน้าต่าง',
     menuHelp: 'วิธีใช้',
     menuShortcuts: 'แป้นพิมพ์ลัด',
-    menuDocsHelp: 'วิธีใช้ GenOffice Docs',
+    menuDocsHelp: 'วิธีใช้ Manuscriber',
   },
   id: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -1028,7 +1029,7 @@ const tMain = createI18n({
     menuWindow: 'Jendela',
     menuHelp: 'Bantuan',
     menuShortcuts: 'Pintasan Papan Ketik',
-    menuDocsHelp: 'Bantuan GenOffice Docs',
+    menuDocsHelp: 'Bantuan Manuscriber',
   },
   ru: {
     dlgOpenDoc: 'Открыть документ',
@@ -1126,7 +1127,7 @@ const tMain = createI18n({
     menuWindow: 'Окно',
     menuHelp: 'Справка',
     menuShortcuts: 'Сочетания клавиш',
-    menuDocsHelp: 'Справка GenOffice Docs',
+    menuDocsHelp: 'Справка Manuscriber',
   },
   ar: {
     dlgOpenDoc: 'فتح مستند',
@@ -1224,7 +1225,7 @@ const tMain = createI18n({
     menuWindow: 'نافذة',
     menuHelp: 'تعليمات',
     menuShortcuts: 'اختصارات لوحة المفاتيح',
-    menuDocsHelp: 'تعليمات GenOffice Docs',
+    menuDocsHelp: 'تعليمات Manuscriber',
   },
   pt: {
     dlgOpenDoc: 'Abrir Documento',
@@ -1322,7 +1323,7 @@ const tMain = createI18n({
     menuWindow: 'Janela',
     menuHelp: 'Ajuda',
     menuShortcuts: 'Atalhos de Teclado',
-    menuDocsHelp: 'Ajuda do GenOffice Docs',
+    menuDocsHelp: 'Ajuda do Manuscriber',
   },
   it: {
     dlgOpenDoc: 'Apri documento',
@@ -1420,7 +1421,7 @@ const tMain = createI18n({
     menuWindow: 'Finestra',
     menuHelp: 'Aiuto',
     menuShortcuts: 'Scelte rapide da tastiera',
-    menuDocsHelp: 'Guida di GenOffice Docs',
+    menuDocsHelp: 'Guida di Manuscriber',
   },
   pl: {
     dlgOpenDoc: 'Otwórz dokument',
@@ -1518,7 +1519,7 @@ const tMain = createI18n({
     menuWindow: 'Okno',
     menuHelp: 'Pomoc',
     menuShortcuts: 'Skróty klawiaturowe',
-    menuDocsHelp: 'Pomoc GenOffice Docs',
+    menuDocsHelp: 'Pomoc Manuscriber',
   },
   cs: {
     dlgOpenDoc: 'Otevřít dokument',
@@ -1616,7 +1617,7 @@ const tMain = createI18n({
     menuWindow: 'Okno',
     menuHelp: 'Nápověda',
     menuShortcuts: 'Klávesové zkratky',
-    menuDocsHelp: 'Nápověda GenOffice Docs',
+    menuDocsHelp: 'Nápověda Manuscriber',
   },
   nl: {
     dlgOpenDoc: 'Document openen',
@@ -1714,7 +1715,7 @@ const tMain = createI18n({
     menuWindow: 'Venster',
     menuHelp: 'Help',
     menuShortcuts: 'Sneltoetsen',
-    menuDocsHelp: 'GenOffice Docs Help',
+    menuDocsHelp: 'Manuscriber Help',
   },
   ms: {
     dlgOpenDoc: 'Buka Dokumen',
@@ -1812,7 +1813,7 @@ const tMain = createI18n({
     menuWindow: 'Tetingkap',
     menuHelp: 'Bantuan',
     menuShortcuts: 'Pintasan Papan Kekunci',
-    menuDocsHelp: 'Bantuan GenOffice Docs',
+    menuDocsHelp: 'Bantuan Manuscriber',
   },
   he: {
     dlgOpenDoc: 'פתיחת מסמך',
@@ -1908,7 +1909,7 @@ const tMain = createI18n({
     menuWindow: 'חלון',
     menuHelp: 'עזרה',
     menuShortcuts: 'קיצורי מקלדת',
-    menuDocsHelp: 'עזרה של GenOffice Docs',
+    menuDocsHelp: 'עזרה של Manuscriber',
   },
   hi: {
     dlgOpenDoc: 'दस्तावेज़ खोलें',
@@ -2006,7 +2007,7 @@ const tMain = createI18n({
     menuWindow: 'विंडो',
     menuHelp: 'सहायता',
     menuShortcuts: 'कीबोर्ड शॉर्टकट',
-    menuDocsHelp: 'GenOffice Docs सहायता',
+    menuDocsHelp: 'Manuscriber सहायता',
   },
   'zh-TW': {
     dlgOpenDoc: '開啟文件',
@@ -2101,7 +2102,7 @@ const tMain = createI18n({
     menuWindow: '視窗',
     menuHelp: '說明',
     menuShortcuts: '鍵盤快速鍵',
-    menuDocsHelp: 'GenOffice Docs 說明',
+    menuDocsHelp: 'Manuscriber 說明',
   },
 })
 const tm = (key: Parameters<typeof tMain>[1], params?: Parameters<typeof tMain>[2]) =>
@@ -2143,6 +2144,11 @@ const pendingNewBlankIds = new Set<number>()
 /** mark a docs webContents as "open blank on first consume" (called by the shell for home:new-doc) */
 export function markDocsNewBlank(wcId: number): void {
   pendingNewBlankIds.add(wcId)
+}
+
+/** queue a docx path for a specific webContents id (used by tab manager for manuscriber / docs tabs) */
+export function queueDocOpenPath(wcId: number, openPath: string): void {
+  if (openPath) pendingWindowOpens.set(wcId, openPath)
 }
 
 /** AI-authored content waiting for its create_document tab, keyed by webContents id */
@@ -2393,19 +2399,31 @@ const docWritablePaths = new Map<number, Set<string>>()
 const pdfWritablePaths = new Map<number, Set<string>>()
 const tornDownWcIds = new Set<number>()
 
-function allowDocWrite(wcId: number, filePath: string): void {
+function normDocPath(filePath: string): string {
+  try {
+    return resolve(filePath).replace(/\\/g, '/').toLowerCase()
+  } catch {
+    return String(filePath).replace(/\\/g, '/').toLowerCase()
+  }
+}
+
+export function allowDocWrite(wcId: number, filePath: string): void {
   const set = docWritablePaths.get(wcId) ?? new Set<string>()
   set.add(filePath)
+  set.add(normDocPath(filePath))
   docWritablePaths.set(wcId, set)
 }
 
-function canDocWrite(wcId: number, filePath: string): boolean {
-  return docWritablePaths.get(wcId)?.has(filePath) === true
+export function canDocWrite(wcId: number, filePath: string): boolean {
+  const set = docWritablePaths.get(wcId)
+  if (!set) return false
+  return set.has(filePath) || set.has(normDocPath(filePath))
 }
 
-function allowPdfWrite(wcId: number, filePath: string): void {
+export function allowPdfWrite(wcId: number, filePath: string): void {
   const set = pdfWritablePaths.get(wcId) ?? new Set<string>()
   set.add(filePath)
+  set.add(normDocPath(filePath))
   pdfWritablePaths.set(wcId, set)
 }
 
@@ -2414,9 +2432,11 @@ function allowPdfWrite(wcId: number, filePath: string): void {
 // is treated as pre-authorized for PDF export.
 const testExportDir = process.env.GENOFFICE_TEST_EXPORT_DIR || null
 
-function canPdfWrite(wcId: number, filePath: string): boolean {
-  if (testExportDir && filePath.startsWith(testExportDir + '/')) return true
-  return pdfWritablePaths.get(wcId)?.has(filePath) === true
+export function canPdfWrite(wcId: number, filePath: string): boolean {
+  if (testExportDir && (filePath.startsWith(testExportDir + '/') || normDocPath(filePath).startsWith(normDocPath(testExportDir) + '/'))) return true
+  const set = pdfWritablePaths.get(wcId)
+  if (!set) return false
+  return set.has(filePath) || set.has(normDocPath(filePath))
 }
 
 function dropDocWriter(wcId: number): void {
@@ -2436,11 +2456,19 @@ const docDiskStates = new Map<number, Map<string, DiskFileState>>()
 
 const sha256Hex = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex')
 
-async function rememberDiskState(wcId: number, filePath: string, bytes: Buffer): Promise<void> {
+function getDocDiskState(wcId: number, filePath: string): DiskFileState | undefined {
+  const map = docDiskStates.get(wcId)
+  if (!map) return undefined
+  return map.get(filePath) ?? map.get(normDocPath(filePath))
+}
+
+export async function rememberDiskState(wcId: number, filePath: string, bytes: Buffer): Promise<void> {
   try {
     const s = await stat(filePath)
     const states = docDiskStates.get(wcId) ?? new Map<string, DiskFileState>()
-    states.set(filePath, { mtimeMs: s.mtimeMs, size: s.size, hash: sha256Hex(bytes) })
+    const state: DiskFileState = { mtimeMs: s.mtimeMs, size: s.size, hash: sha256Hex(bytes) }
+    states.set(filePath, state)
+    states.set(normDocPath(filePath), state)
     docDiskStates.set(wcId, states)
   } catch {
     /* unstatable target: skip tracking; the next save simply won't flag a conflict */
@@ -2454,7 +2482,7 @@ async function diskChangedExternally(wcId: number, filePath: string): Promise<bo
   } catch {
     current = null
   }
-  return isExternallyModified(docDiskStates.get(wcId)?.get(filePath), current, async () => {
+  return isExternallyModified(getDocDiskState(wcId, filePath), current, async () => {
     try {
       return sha256Hex(await readFile(filePath))
     } catch {
@@ -2555,7 +2583,7 @@ async function loadDocx(
   wcId: number,
   password?: string,
 ): Promise<OpenDocxResult> {
-  if (typeof filePath !== 'string' || !/\.docx$/i.test(filePath)) return null
+  if (typeof filePath !== 'string' || !/\.(docx|manus|manuscriber|mnsproj)$/i.test(filePath)) return null
   if (!existsSync(filePath)) return null
   const original = await readFile(filePath)
   // Password-protected docx (ECMA-376 CFB container): without a password, hand
@@ -3226,9 +3254,38 @@ export function registerDocsIpc(): void {
   setRescueFetch((url, init) => net.fetch(url, init))
   setAiUserAgent(`GenOffice/${app.getVersion()}`)
 
-  // shared with the other editor modules — last (identical) registration wins
   ipcMain.removeHandler('app:get-language')
   ipcMain.handle('app:get-language', () => getUiLang())
+
+  ipcMain.handle('docs:get-spellcheck-languages', (event) => {
+    try {
+      return event.sender.session.getSpellCheckerLanguages()
+    } catch {
+      return []
+    }
+  })
+
+  ipcMain.handle('docs:set-spellcheck-languages', (event, languages: string[]) => {
+    try {
+      if (Array.isArray(languages) && languages.length > 0) {
+        event.sender.session.setSpellCheckerLanguages(languages)
+      }
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
+  })
+
+  ipcMain.handle('docs:add-to-dictionary', (event, word: string) => {
+    try {
+      if (typeof word === 'string' && word.trim()) {
+        event.sender.session.addWordToSpellCheckerDictionary(word.trim())
+      }
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: String(err) }
+    }
+  })
 
   configureMetricsCache(userDataPath('font-metrics'))
   ipcMain.handle('docs:font-metrics', (_event, family: string) =>
@@ -3238,7 +3295,11 @@ export function registerDocsIpc(): void {
   ipcMain.handle('docs:open', async (event) => {
     const result = await openDialog(event, {
       title: tm('dlgOpenDoc'),
-      filters: [{ name: tm('filterWord'), extensions: ['docx'] }],
+      filters: [
+        { name: 'Word Documents & Manuscriber Projects (*.docx, *.manus)', extensions: ['docx', 'manus', 'manuscriber', 'mnsproj'] },
+        { name: tm('filterWord'), extensions: ['docx'] },
+        { name: 'Proyek Manuscriber (*.manus)', extensions: ['manus', 'manuscriber', 'mnsproj'] },
+      ],
       properties: ['openFile'],
     })
     if (result.canceled || result.filePaths.length === 0) return null
@@ -4330,6 +4391,45 @@ export async function exportDocsHeadless(
   }
 }
 
+/** Multi-language spellchecker setup (Indonesian, English, Arabic) offline & default active */
+export function setupSpellChecker(ses: Electron.Session = session.defaultSession): void {
+  try {
+    ses.setSpellCheckerEnabled(true)
+    const SPELLCHECK_LANGS = ['id-ID', 'id', 'en-US', 'en-GB', 'en', 'ar', 'ar-SA', 'ar-EG']
+    const available = ses.availableSpellCheckerLanguages || []
+    const toEnable: string[] = []
+    for (const d of SPELLCHECK_LANGS) {
+      if (available.includes(d)) {
+        if (!toEnable.includes(d)) toEnable.push(d)
+      } else {
+        const prefix = d.split('-')[0].toLowerCase()
+        const match = available.find((a) => a.toLowerCase().startsWith(prefix))
+        if (match && !toEnable.includes(match)) {
+          toEnable.push(match)
+        }
+      }
+    }
+    const finalLangs = toEnable.length > 0 ? Array.from(new Set(toEnable)) : ['id-ID', 'en-US', 'ar']
+    ses.setSpellCheckerLanguages(finalLangs)
+    console.log('[SpellChecker] Multi-language spellchecker active in docs:', ses.getSpellCheckerLanguages())
+  } catch (err) {
+    console.warn('[SpellChecker] Error configuring spellchecker:', err)
+  }
+}
+
+function attachSpellcheckContextMenu(win: BrowserWindow): void {
+  win.webContents.on('context-menu', (_event, params) => {
+    if (params.misspelledWord) {
+      win.webContents.send('docs:spelling-suggestions', {
+        misspelledWord: params.misspelledWord,
+        suggestions: params.dictionarySuggestions || [],
+        x: params.x,
+        y: params.y,
+      })
+    }
+  })
+}
+
 // ---- window ----
 
 export function createDocsWindow(openPath?: string): BrowserWindow {
@@ -4338,7 +4438,7 @@ export function createDocsWindow(openPath?: string): BrowserWindow {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'GenOffice Docs',
+    title: 'Manuscriber',
     // Word-like custom title bar (document name centered, quick-access buttons)
     ...(process.platform === 'darwin'
       ? { titleBarStyle: 'hiddenInset' as const }
@@ -4356,8 +4456,11 @@ export function createDocsWindow(openPath?: string): BrowserWindow {
       nodeIntegration: false,
       sandbox: true,
       backgroundThrottling: false,
+      spellcheck: true,
     },
   })
+
+  attachSpellcheckContextMenu(win)
 
   if (!mainWindow) {
     mainWindow = win
@@ -4619,11 +4722,11 @@ export function startDocsStandalone(): void {
   installContextMenu(app, () => contextMenuLabels(getUiLang()))
   // dev runs must not share the packaged app's userData (recent files, AI settings)
   // or its single-instance lock — otherwise `npm run dev` silently quits whenever
-  // the installed GenOffice Docs is open and forwards its argv there instead.
+  // the installed Manuscriber is open and forwards its argv there instead.
   // AI_OFFICE_USER_DATA: E2E/screenshot runs isolate userData (and the
   // single-instance lock) so parallel automation sessions don't evict each other
   if (process.env.AI_OFFICE_USER_DATA) app.setPath('userData', process.env.AI_OFFICE_USER_DATA)
-  else if (isDev) app.setPath('userData', join(app.getPath('appData'), 'GenOffice Docs Dev'))
+  else if (isDev) app.setPath('userData', join(app.getPath('appData'), 'Manuscriber Dev'))
 
   const hasSingleInstanceLock = app.requestSingleInstanceLock()
   if (!hasSingleInstanceLock) {
@@ -4648,11 +4751,12 @@ export function startDocsStandalone(): void {
 
   app.whenReady().then(() => {
     installRendererProtocol({ docs: join(__dirname, '../renderer') })
-    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? app.getLocale()))
+    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? 'id'))
     // packaged builds get the Dock icon from icon.icns; dev shows Electron's default
     if (isDev && process.platform === 'darwin') {
       app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'))
     }
+    setupSpellChecker()
     buildDocsMenu()
     createDocsWindow()
     initDocsAutoUpdater(() => mainWindow)

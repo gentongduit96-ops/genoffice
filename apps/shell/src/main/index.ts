@@ -129,6 +129,10 @@ import {
   defaultSaveDir,
   uniquePathIn,
 } from '../../../docs/src/main/docs-main'
+import {
+  configureDocsRuntime as configureManuscriberRuntime,
+  registerManuscriberIpc,
+} from '../../../docxeditor/src/main/docs-main'
 import { blankXlsxBuffer } from '@genoffice/xlsx-gateway/gateway/csv-import'
 import { blankPdfBuffer } from '../../../pdf/src/main/blank-pdf'
 import {
@@ -297,6 +301,9 @@ const MARKDOWN_OUT = app.isPackaged
 const HTML_OUT = app.isPackaged
   ? join(process.resourcesPath, 'modules', 'html')
   : join(APPS_ROOT, 'html', 'out')
+const DOCXEDITOR_OUT = app.isPackaged
+  ? join(process.resourcesPath, 'modules', 'docxeditor')
+  : join(APPS_ROOT, 'docxeditor', 'out')
 const SIDECAR_BIN = app.isPackaged
   ? join(process.resourcesPath, 'native', SIDECAR_EXE)
   : join(APPS_ROOT, 'sheets', 'native', 'xlsx-engine', 'target', 'release', SIDECAR_EXE)
@@ -305,6 +312,11 @@ configureDocsRuntime({
   preloadPath: join(DOCS_OUT, 'preload', 'index.js'),
   rendererUrl: process.env.DOCS_RENDERER_URL,
   rendererFile: join(DOCS_OUT, 'renderer', 'index.html'),
+})
+configureManuscriberRuntime({
+  preloadPath: join(DOCXEDITOR_OUT, 'preload', 'index.js'),
+  rendererUrl: process.env.MANUSCRIBER_RENDERER_URL || process.env.DOCXEDITOR_RENDERER_URL,
+  rendererFile: join(DOCXEDITOR_OUT, 'renderer', 'index.html'),
 })
 configureSheetsRuntime({
   preloadPath: join(SHEETS_OUT, 'preload', 'index.js'),
@@ -367,7 +379,7 @@ function currentLang(): Lang {
   }
   const saved = readAppSettings(APP_SETTINGS_PATH()).language
   if (isLang(saved)) uiLang = saved
-  uiLang ??= normalizeLang(app.getLocale())
+  uiLang ??= 'id'
   setUiLang(uiLang)
   return uiLang
 }
@@ -2362,6 +2374,7 @@ function applyPendingProject(filePath: string): void {
 function applyMenuFor(kind: TabKind): void {
   switch (kind) {
     case 'docs':
+    case 'manuscriber':
       buildDocsMenu()
       break
     case 'sheets':
@@ -2395,7 +2408,7 @@ function createShellWindow(): void {
     height: 900,
     minWidth: 720,
     minHeight: 550,
-    title: 'GenOffice',
+    title: 'Manuscriber',
     // vibrancy: editor modules punch translucent regions (e.g. the slides
     // thumbnail pane) through to the desktop
     ...(process.platform === 'darwin'
@@ -2437,13 +2450,15 @@ function createShellWindow(): void {
     (kind) =>
       kind === 'docs'
         ? tm('untitledDoc')
-        : kind === 'slides'
-          ? tm('untitledDeck')
-          : kind === 'markdown'
-            ? tm('untitledMarkdown')
-            : kind === 'html'
-              ? tm('untitledHtml')
-              : tm('untitledSheet'),
+        : kind === 'manuscriber'
+          ? 'Manuscriber'
+          : kind === 'slides'
+            ? tm('untitledDeck')
+            : kind === 'markdown'
+              ? tm('untitledMarkdown')
+              : kind === 'html'
+                ? tm('untitledHtml')
+                : tm('untitledSheet'),
   )
   tabManager = manager
 
@@ -2623,6 +2638,7 @@ function createShellWindow(): void {
 // ---- routing: one dispatch function for every open path ----
 
 const DOCX_RE = /\.docx$/i
+const MANUS_RE = /\.(manus|manuscriber|mnsproj)$/i
 const XLSX_RE = /\.(xlsx|xlsm|xls|csv)$/i
 const PPTX_RE = /\.pptx$/i
 const PDF_RE = /\.pdf$/i
@@ -2640,6 +2656,9 @@ const UNSUPPORTED_DOC_RE = /\.(doc|rtf|odt|ppt|pps|odp|ods|xlsb|pages|key|number
 const OPEN_DIALOG_EXTENSIONS = [
   'docx',
   'doc',
+  'manus',
+  'manuscriber',
+  'mnsproj',
   'xlsx',
   'xlsm',
   'xls',
@@ -2658,6 +2677,7 @@ function supportedFileIn(argv: string[]): string | null {
     argv.find(
       (arg) =>
         (DOCX_RE.test(arg) ||
+          MANUS_RE.test(arg) ||
           XLSX_RE.test(arg) ||
           PPTX_RE.test(arg) ||
           PDF_RE.test(arg) ||
@@ -2737,6 +2757,13 @@ function openGeneratedDocument(filePath: string): boolean {
 
 function routeDocumentPath(filePath: string): boolean {
   if (!existsSync(filePath) || !tabManager) return false
+  if (MANUS_RE.test(filePath)) {
+    recordRecentFile(filePath)
+    const existing = tabManager.findManuscriberTabByPath(filePath)
+    if (existing) tabManager.activateTab(existing)
+    else tabManager.openManuscriberTab(filePath)
+    return true
+  }
   if (DOCX_RE.test(filePath)) {
     recordRecentFile(filePath)
     const existing = tabManager.findDocsTabByPath(filePath)
@@ -2834,6 +2861,16 @@ function newDocTab(): void {
     // creating a document is as much a value moment as opening one
     recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'docx' })
+  } catch (err) {
+    surfaceNewTabError(err)
+  }
+}
+
+function newManuscriberTab(): void {
+  try {
+    tabManager?.openManuscriberTab(undefined, { newBlank: true })
+    recordStarPromptDocOpen()
+    analytics.track('file_new', { kind: 'manuscriber' })
   } catch (err) {
     surfaceNewTabError(err)
   }
@@ -3014,6 +3051,7 @@ function registerHomeIpc(): void {
       filters: [
         { name: tm('filterSupported'), extensions: OPEN_DIALOG_EXTENSIONS },
         { name: tm('filterWord'), extensions: ['docx', 'doc'] },
+        { name: 'Manuscriber Project (*.manus)', extensions: ['manus', 'manuscriber', 'mnsproj'] },
         { name: tm('filterExcel'), extensions: ['xlsx', 'xlsm', 'xls', 'csv'] },
         { name: tm('filterPpt'), extensions: ['pptx', 'ppt'] },
         { name: tm('filterPdf'), extensions: ['pdf'] },
@@ -3030,6 +3068,20 @@ function registerHomeIpc(): void {
       pendingNewFileProject.set('doc', opts.projectId)
     }
     newDocTab()
+  })
+
+  ipcMain.handle(HOME_CHANNELS.newManuscriber, (_event, opts?: { projectId?: string }) => {
+    if (opts?.projectId && opts.projectId !== 'default') {
+      pendingNewFileProject.set('doc', opts.projectId)
+    }
+    newManuscriberTab()
+  })
+
+  ipcMain.handle(HOME_CHANNELS.openWithManuscriber, (_event, path: unknown) => {
+    if (typeof path === 'string' && existsSync(path)) {
+      tabManager?.openManuscriberTab(path)
+      recordRecentFile(path)
+    }
   })
 
   ipcMain.handle(HOME_CHANNELS.newSheet, (_event, opts?: { projectId?: string }) => {
@@ -3382,6 +3434,7 @@ const TAB_MENU_ICON: Record<TabKind, keyof MenuIconSet> = {
   pdf: 'pdf',
   markdown: 'md',
   html: 'html',
+  manuscriber: 'docx',
 }
 
 // tab views see neither DOM events nor a focus change when the user clicks the
@@ -4322,6 +4375,7 @@ installContextMenu(app, () => contextMenuLabels(currentLang()))
 registerAiIpc()
 registerProjectIpc()
 registerDocsIpc()
+registerManuscriberIpc()
 registerHomeIpc()
 registerIntegrationsIpc({
   settingsPath: APP_SETTINGS_PATH,
@@ -4392,6 +4446,8 @@ app.whenReady().then(async () => {
     pdf: join(PDF_OUT, 'renderer'),
     markdown: join(MARKDOWN_OUT, 'renderer'),
     html: join(HTML_OUT, 'renderer'),
+    docxeditor: join(DOCXEDITOR_OUT, 'renderer'),
+    manuscriber: join(DOCXEDITOR_OUT, 'renderer'),
   })
   if (headlessArgv.kind !== 'none') {
     await runHeadlessExportEntry(headlessArgv)

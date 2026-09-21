@@ -168,7 +168,7 @@ export function defineStrings<D extends Record<string, string>>(dicts: LangDicts
 // Used by Electron main-process code (shell + editor main modules share one
 // bundle, so one holder). Renderers get the language over IPC instead.
 
-let uiLang: Lang = 'zh'
+let uiLang: Lang = 'id'
 const langListeners = new Set<(lang: Lang) => void>()
 
 export function getUiLang(): Lang {

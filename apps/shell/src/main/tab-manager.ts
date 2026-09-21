@@ -6,11 +6,16 @@ import {
   createDocsView,
   docsQueryDirty,
   markDocsNewBlank,
+  queueDocOpenPath,
   queueDocsAiContent,
   requestDocsClose,
   setActiveDocsResolver,
   teardownDocsRenderer,
 } from '../../../docs/src/main/docs-main'
+import {
+  createDocsView as createManuscriberView,
+  markDocsNewBlank as markManuscriberNewBlank,
+} from '../../../docxeditor/src/main/docs-main'
 import type { AiDocContent } from '../../../docs/src/shared/ipc'
 import {
   createMarkdownView,
@@ -69,7 +74,7 @@ const HOME_ID = 'home'
  */
 export class TabManager {
   private readonly tabs: TabRecord[] = [
-    { id: HOME_ID, kind: 'home', view: null, title: 'GenOffice' },
+    { id: HOME_ID, kind: 'home', view: null, title: 'Manuscriber' },
   ]
   private activeId: string = HOME_ID
   private nextId = 1
@@ -216,7 +221,37 @@ export class TabManager {
       id,
       kind: 'docs',
       view,
-      title: openPath ? basename(openPath) : this.untitled('docs', 'GenOffice Docs'),
+      title: openPath ? basename(openPath) : this.untitled('docs', 'Manuscriber'),
+      filePath: openPath,
+    })
+    this.activateTab(id)
+    return id
+  }
+
+  openManuscriberTab(openPath?: string, options?: { newBlank?: boolean }): string {
+    const view = createManuscriberView(openPath)
+    const id = `t${this.nextId++}`
+    if (options?.newBlank) {
+      markManuscriberNewBlank(view.webContents.id)
+      markDocsNewBlank(view.webContents.id)
+    }
+    if (
+      openPath &&
+      (openPath.toLowerCase().endsWith('.docx') ||
+        openPath.toLowerCase().endsWith('.manus') ||
+        openPath.toLowerCase().endsWith('.manuscriber') ||
+        openPath.toLowerCase().endsWith('.mnsproj'))
+    ) {
+      queueDocOpenPath(view.webContents.id, openPath)
+    }
+    this.shellWindow.contentView.addChildView(view)
+    view.setVisible(false)
+    this.trackHtmlFullScreen(id, view)
+    this.tabs.push({
+      id,
+      kind: 'manuscriber',
+      view,
+      title: openPath ? basename(openPath) : this.untitled('manuscriber', 'Manuscriber'),
       filePath: openPath,
     })
     this.activateTab(id)
@@ -528,6 +563,10 @@ export class TabManager {
 
   findDocsTabByPath(path: string): string | undefined {
     return this.tabs.find((t) => t.kind === 'docs' && t.filePath === path)?.id
+  }
+
+  findManuscriberTabByPath(path: string): string | undefined {
+    return this.tabs.find((t) => t.kind === 'manuscriber' && t.filePath === path)?.id
   }
 
   findSheetsTab(): string | undefined {

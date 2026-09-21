@@ -413,4 +413,16 @@ export interface DesktopApi {
   reportCloseSaveResult(ok: boolean): void
   /** keep the native View menu's checkbox items in sync with renderer state */
   reportViewMenuState(state: { aiSidebar: boolean; darkCanvas: boolean }): void
+  /** Multi-language spellchecker API */
+  getSpellcheckLanguages?: () => Promise<string[]>
+  setSpellcheckLanguages?: (languages: string[]) => Promise<{ ok: boolean; error?: string }>
+  addWordToDictionary?: (word: string) => Promise<{ ok: boolean; error?: string }>
+  onSpellingSuggestions?: (
+    handler: (data: {
+      misspelledWord: string
+      suggestions: string[]
+      x?: number
+      y?: number
+    }) => void,
+  ) => () => void
 }

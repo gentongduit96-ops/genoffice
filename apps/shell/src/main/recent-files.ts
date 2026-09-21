@@ -61,6 +61,7 @@ export function normalizeRecentQuery(
 export const EXT_FAMILY: Record<string, readonly string[]> = {
   xlsx: ['xlsx', 'xlsm', 'xls'],
   html: ['html', 'htm'],
+  manus: ['manus', 'manuscriber', 'mnsproj'],
 }
 
 /** Family-aware extension match for sidebar filters (recents and starred share it). */

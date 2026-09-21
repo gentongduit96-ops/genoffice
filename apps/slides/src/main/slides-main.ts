@@ -4696,7 +4696,7 @@ export function startSlidesStandalone(): void {
 
   app.whenReady().then(async () => {
     installRendererProtocol({ slides: join(__dirname, '../renderer') })
-    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? app.getLocale()))
+    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? 'id'))
     registerSlidesIpc()
     registerAiIpc()
     registerProjectIpc()

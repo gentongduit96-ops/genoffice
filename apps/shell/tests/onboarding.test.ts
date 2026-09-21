@@ -74,6 +74,7 @@ describe('analytics consent in onboarding', () => {
     await click('.onb-next')
     await click('.onb-next')
     await click('.onb-next')
+    await click('.onb-next')
     expect(onDone).toHaveBeenCalledWith()
   })
 })

@@ -17,17 +17,26 @@ interface Slide {
   bodyKey?: StringKey
   /** render the body in the dimmer footnote gray (slide 3's credits disclaimer) */
   bodyDim?: boolean
+  /** showcase manuscript transcription features */
+  showManusFeatures?: boolean
   /** community slide shows the credits offer panel with the "Join GenTeam" call-to-action */
   showOffer?: boolean
   /** closing slide shows the "star us on GitHub" hint */
   showStar?: boolean
   /** closing slide explains default-on analytics and how to disable it */
   showAnalyticsNotice?: boolean
-  art: 'logo' | 'gift' | 'check'
+  art: 'logo' | 'manuscript' | 'gift' | 'check'
 }
 
 const SLIDES: readonly Slide[] = [
   { titleKey: 'onbTitle1', subtitleKey: 'onbSubtitle1', bodyKey: 'onbBody1', art: 'logo' },
+  {
+    titleKey: 'onbTitleManus',
+    subtitleKey: 'onbSubtitleManus',
+    bodyKey: 'onbBodyManus',
+    showManusFeatures: true,
+    art: 'manuscript',
+  },
   { titleKey: 'onbTitle2', subtitleKey: 'onbBody2', showOffer: true, art: 'gift' },
   {
     titleKey: 'onbTitle3',
@@ -52,6 +61,26 @@ function renderEmphasis(text: string) {
 function SlideArt({ kind }: { kind: Slide['art'] }) {
   if (kind === 'logo') {
     return <img className="onb-art onb-art-logo" src={appIcon} alt="" />
+  }
+  if (kind === 'manuscript') {
+    return (
+      <span className="onb-art onb-art-badge onb-art-gift" aria-hidden="true" style={{ color: '#0f7fff' }}>
+        <svg
+          viewBox="0 0 48 48"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="3.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M8 38V10a4 4 0 0 1 4-4h24a4 4 0 0 1 4 4v28a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4Z" />
+          <path d="M16 14h16" />
+          <path d="M16 22h16" />
+          <path d="M16 30h10" />
+          <path d="M30 28l6 6m0-6l-6 6" />
+        </svg>
+      </span>
+    )
   }
   if (kind === 'gift') {
     // hand-drawn gift kept over the spec vector deliberately; 48 canvas at
@@ -191,6 +220,57 @@ export function Onboarding({ onDone }: OnboardingProps) {
               <p className="onb-subtitle">{t(s.subtitleKey)}</p>
               {s.bodyKey && (
                 <p className={`onb-body${s.bodyDim ? ' onb-body-dim' : ''}`}>{t(s.bodyKey)}</p>
+              )}
+              {s.showManusFeatures && (
+                <div className="onb-manus-grid">
+                  <div className="onb-manus-item">
+                    <div className="onb-manus-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" />
+                        <line x1="12" y1="3" x2="12" y2="21" />
+                      </svg>
+                    </div>
+                    <div className="onb-manus-item-content">
+                      <span className="onb-manus-title">{t('onbManusFeat1Title')}</span>
+                      <span className="onb-manus-desc">{t('onbManusFeat1Desc')}</span>
+                    </div>
+                  </div>
+                  <div className="onb-manus-item">
+                    <div className="onb-manus-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                      </svg>
+                    </div>
+                    <div className="onb-manus-item-content">
+                      <span className="onb-manus-title">{t('onbManusFeat2Title')}</span>
+                      <span className="onb-manus-desc">{t('onbManusFeat2Desc')}</span>
+                    </div>
+                  </div>
+                  <div className="onb-manus-item">
+                    <div className="onb-manus-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    </div>
+                    <div className="onb-manus-item-content">
+                      <span className="onb-manus-title">{t('onbManusFeat3Title')}</span>
+                      <span className="onb-manus-desc">{t('onbManusFeat3Desc')}</span>
+                    </div>
+                  </div>
+                  <div className="onb-manus-item">
+                    <div className="onb-manus-icon">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                        <polyline points="17 21 17 13 7 13 7 21" />
+                        <polyline points="7 3 7 8 15 8" />
+                      </svg>
+                    </div>
+                    <div className="onb-manus-item-content">
+                      <span className="onb-manus-title">{t('onbManusFeat4Title')}</span>
+                      <span className="onb-manus-desc">{t('onbManusFeat4Desc')}</span>
+                    </div>
+                  </div>
+                </div>
               )}
               {s.showStar && (
                 <div className="onb-star">

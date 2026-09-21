@@ -88,6 +88,16 @@ function errorText(err: unknown): string {
  * able to ship arbitrary files to a vendor.
  */
 export async function loadMediaReference(ref: string): Promise<MediaBlob> {
+  if (ref.startsWith('data:')) {
+    const match = ref.match(/^data:([^;]+);base64,(.+)$/)
+    if (!match) throw new Error('Invalid data URL format')
+    const mime = match[1]
+    const bytes = new Uint8Array(Buffer.from(match[2], 'base64'))
+    if (bytes.byteLength > MAX_MEDIA_BYTES) {
+      throw new MediaTooLargeError('Media is too large to analyze')
+    }
+    return { bytes, mime }
+  }
   if (/^https?:\/\//i.test(ref)) {
     const resp = await (ref.match(/\.(png|jpe?g|gif|webp)(\?|$)/i)
       ? fetchRemoteImage(ref)

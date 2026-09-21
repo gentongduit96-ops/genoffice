@@ -63,6 +63,17 @@ const FILE_ICONS: Record<string, string> = {
 const OPEN_LOCAL_EXTENSIONS = '.docx / .xlsx / .xlsm / .xls / .csv / .pptx / .pdf / .md / .html'
 
 function FileBadge({ ext, size }: { ext: string; size: number }) {
+  if (ext === 'manuscriber' || ext === 'manus' || ext === 'mnsproj') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="7.5" fill="#6366F1" />
+        <path
+          d="M8 8H24V11H8V8ZM8 13.5H24V16.5H8V13.5ZM8 19H17V22H8V19ZM20.5 18.5L25.5 22.5L20.5 26.5V18.5Z"
+          fill="#fff"
+        />
+      </svg>
+    )
+  }
   const icon = FILE_ICONS[ext]
   if (icon) {
     return <img src={icon} width={size} height={size} alt="" aria-hidden="true" />
@@ -130,6 +141,7 @@ const FILTERS: { key: string; label: StringKey }[] = [
   { key: 'xlsx', label: 'filterSheets' },
   { key: 'pptx', label: 'filterSlides' },
   { key: 'pdf', label: 'filterPdf' },
+  { key: 'manus', label: 'filterManus' },
   { key: 'md', label: 'filterMd' },
   { key: 'html', label: 'filterHtml' },
 ]
@@ -1601,6 +1613,12 @@ export function Home() {
     void window.aiOffice.newPdf(selectedProjectId ? { projectId: selectedProjectId } : undefined)
   }
 
+  const handleNewManuscriber = () => {
+    void window.aiOffice.newManuscriber(
+      selectedProjectId ? { projectId: selectedProjectId } : undefined,
+    )
+  }
+
   const NEW_ITEMS = [
     { ext: 'docx', title: t('newDoc'), sub: '.docx', action: handleNewDoc },
     { ext: 'xlsx', title: t('newSheet'), sub: '.xlsx', action: handleNewSheet },
@@ -1608,6 +1626,7 @@ export function Home() {
     { ext: 'md', title: t('newMarkdown'), sub: '.md', action: handleNewMarkdown },
     { ext: 'html', title: t('newHtml'), sub: '.html', action: handleNewHtml },
     { ext: 'pdf', title: t('newPdf'), sub: '.pdf', action: handleNewPdf },
+    { ext: 'manuscriber', title: 'Manuscriber', sub: '.pdf → .docx', action: handleNewManuscriber },
   ]
 
   function renderQuickCards() {
@@ -1758,6 +1777,20 @@ export function Home() {
                 >
                   {t('open')}
                 </button>
+                {(entry.ext === 'pdf' ||
+                  entry.ext === 'docx' ||
+                  entry.path.toLowerCase().endsWith('.pdf') ||
+                  entry.path.toLowerCase().endsWith('.docx')) && (
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setRowMenu(null)
+                      void window.aiOffice.openWithManuscriber(entry.path)
+                    }}
+                  >
+                    {t('openWithManuscriber')}
+                  </button>
+                )}
                 <button
                   role="menuitem"
                   onClick={() => {
@@ -2137,7 +2170,7 @@ export function Home() {
     <div className="home">
       <aside className="sidebar">
         <div className="sidebar-logo">
-          <img className="logo-lockup" src={logoLockup} alt="GenOffice" />
+          <img className="logo-lockup" src={logoLockup} alt="Manuscriber" />
         </div>
 
         <nav className="sidebar-nav">

@@ -188,6 +188,18 @@ const api: DesktopApi = {
     return () => ipcRenderer.removeListener('docs:close-save-request', listener)
   },
   reportCloseSaveResult: (ok: boolean) => ipcRenderer.send('docs:close-save-result', ok === true),
+  getSpellcheckLanguages: () => ipcRenderer.invoke('docs:get-spellcheck-languages'),
+  setSpellcheckLanguages: (languages: string[]) =>
+    ipcRenderer.invoke('docs:set-spellcheck-languages', languages),
+  addWordToDictionary: (word: string) => ipcRenderer.invoke('docs:add-to-dictionary', word),
+  onSpellingSuggestions: (handler) => {
+    const listener = (
+      _event: IpcRendererEvent,
+      data: { misspelledWord: string; suggestions: string[]; x?: number; y?: number },
+    ) => handler(data)
+    ipcRenderer.on('docs:spelling-suggestions', listener)
+    return () => ipcRenderer.removeListener('docs:spelling-suggestions', listener)
+  },
 }
 
 const projectApi: ProjectApi = {

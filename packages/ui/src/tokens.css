@@ -1,196 +1,306 @@
 /* GenOffice design tokens — the single source of truth for UI chrome colors.
+ * Standardized on Microsoft Fluent 2 Design System specifications.
  * Theme switching: light defaults in :root, [data-theme='dark'] overrides,
  * prefers-color-scheme fallback for system mode (no data-theme attribute).
  * Per-app accents (--accent / --accent-dark / --accent-soft) live in each
- * app's styles.css. Document content colors (paper, cells, exports, chart
- * palettes) never live here and never reference these tokens. */
+ * app's styles.css. */
 
 :root {
-  /* chrome */
-  --surface: #ffffff;
-  --surface-subtle: #f6f7f9;
-  --chrome-bg: #ffffff;
-  --canvas: #e6e6e6;
-  --border: #e3e6ea;
-  --border-subtle: #efefef;
-  --border-strong: #d9d9d9;
-  --border-hover: #d3d7dd;
-  --text: #242424;
-  --text-primary: #232425;
-  --text-secondary: #606366;
-  --text-tertiary: #909499;
-  --text-muted: #878e96;
-  --text-dim: #605e5c;
-  --hover: #f5f5f5;
-  --pressed: #edebe9;
-  --active-bg: #eaeaea;
-  --bg-hover: #f5f5f5;
-  --bg-hover-subtle: #f0f2f5;
-  --bg-hover-strong: #e8eaee;
-  --bg-hover-accent: #e0e4ea;
-  --bg-content: #fafafa;
-  --icon-muted: #b9bfc7;
-  --danger: #d13438;
-  --danger-bg: #fdf3f3;
-  --search-hit-bg: #ffe28a;
-  --search-hit-active-bg: #ff9632;
-  --search-hit-active-ink: #fff;
-  --danger-border: #f0c8c9;
-  --success: #107c41;
-  --success-bg: #eaf7ef;
-  --success-border: #c8e8d4;
-  --color-bg-overlay: rgb(0 0 0 / 50%);
-  --shadow-modal-strong: 0 20px 25px rgb(0 0 0 / 10%);
-  --shadow-btn-hover: 0 2px 8px rgb(35 36 37 / 15%);
-  --shadow-menu: 0 8px 24px rgb(0 0 0 / 18%);
+  /* ── Fluent 2 Typography & Base Font ── */
+  --font-family-base: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, 'Helvetica Neue', sans-serif;
+  --gs-font-sans: var(--font-family-base);
 
-  /* AI panel (canonical names from the former per-app copies) */
-  --gs-font-sans:
-    'Arial', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
-    sans-serif;
-  --color-btn-primary: #232425;
-  --color-btn-primary-hover: #393a3b;
-  --color-btn-primary-text: #ffffff;
-  --color-ai-action: #e8663f;
-  --color-ai-action-hover: #d4552f;
-  --color-ai-action-text: #ffffff;
-  --color-brand-secondary: #0f7fff;
-  --color-text-primary: #232425;
-  --color-text-secondary: #606366;
-  --color-text-tertiary: #909499;
-  --color-bg-page: #ffffff;
-  --color-bg-subtle: #f5f5f5;
-  --color-border-default: #eaeaea;
-  --color-border-strong: #d0d3d8;
-  --color-border-brand: #0f7fff;
-  --color-error: #ef4444;
-  --color-error-hover: #dc2626;
-
-  /* non-color */
+  /* ── Fluent 2 Corner Radius ── */
+  --radius-none: 0px;
+  --radius-2: 2px;
+  --radius-4: 4px;
   --radius-6: 6px;
   --radius-8: 8px;
   --radius-12: 12px;
   --radius-16: 16px;
   --radius-30: 30px;
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --text-body-lg: 18px;
-  --text-small: 14px;
-  --text-caption: 12px;
+  --radius-circular: 9999px;
+
+  /* ── Fluent 2 Elevation & Shadows ── */
+  --shadow-fluent-2: 0 1.6px 3.6px 0 rgb(0 0 0 / 13%), 0 0.3px 0.9px 0 rgb(0 0 0 / 11%);
+  --shadow-fluent-4: 0 3.2px 7.2px 0 rgb(0 0 0 / 13%), 0 0.6px 1.8px 0 rgb(0 0 0 / 11%);
+  --shadow-fluent-8: 0 6.4px 14.4px 0 rgb(0 0 0 / 13%), 0 1.2px 3.6px 0 rgb(0 0 0 / 11%);
+  --shadow-fluent-16: 0 12.8px 28.8px 0 rgb(0 0 0 / 13%), 0 2.4px 7.2px 0 rgb(0 0 0 / 11%);
+  --shadow-fluent-28: 0 22.4px 50.4px 0 rgb(0 0 0 / 13%), 0 4.2px 12.6px 0 rgb(0 0 0 / 11%);
+
+  /* ── Fluent 2 Neutral Palette (Light) ── */
+  --colorNeutralBackground1: #ffffff;
+  --colorNeutralBackground2: #fafafa;
+  --colorNeutralBackground3: #f5f5f5;
+  --colorNeutralBackground4: #f0f0f0;
+  --colorNeutralBackground1Hover: #f5f5f5;
+  --colorNeutralBackground1Pressed: #e0e0e0;
+  --colorNeutralBackground1Selected: #ebebeb;
+  --colorNeutralStroke1: #d1d1d1;
+  --colorNeutralStroke2: #e0e0e0;
+  --colorNeutralStrokeSubtle: #edebe9;
+  --colorNeutralForeground1: #242424;
+  --colorNeutralForeground2: #424242;
+  --colorNeutralForeground3: #616161;
+  --colorNeutralForeground4: #707070;
+  --colorNeutralForegroundDisabled: #a19f9d;
+
+  /* ── Fluent 2 Brand / Primary Accent ── */
+  --colorBrandBackground: #0f6cbd;
+  --colorBrandBackgroundHover: #115ea3;
+  --colorBrandBackgroundPressed: #0c3b5e;
+  --colorBrandForeground1: #0f6cbd;
+  --colorBrandForeground2: #115ea3;
+  --colorBrandStroke1: #0f6cbd;
+  --colorBrandForegroundLink: #0f6cbd;
+
+  /* ── Chrome / App Aliases (preserving backwards compatibility) ── */
+  --surface: var(--colorNeutralBackground1);
+  --surface-subtle: var(--colorNeutralBackground2);
+  --chrome-bg: var(--colorNeutralBackground1);
+  --canvas: #edebe9;
+  --border: var(--colorNeutralStroke2);
+  --border-subtle: var(--colorNeutralStrokeSubtle);
+  --border-strong: var(--colorNeutralStroke1);
+  --border-hover: #b3b3b3;
+  --text: var(--colorNeutralForeground1);
+  --text-primary: var(--colorNeutralForeground1);
+  --text-secondary: var(--colorNeutralForeground3);
+  --text-tertiary: var(--colorNeutralForeground4);
+  --text-muted: var(--colorNeutralForeground4);
+  --text-dim: #605e5c;
+  --hover: var(--colorNeutralBackground1Hover);
+  --pressed: var(--colorNeutralBackground1Pressed);
+  --active-bg: var(--colorNeutralBackground1Selected);
+  --bg-hover: var(--colorNeutralBackground1Hover);
+  --bg-hover-subtle: var(--colorNeutralBackground2);
+  --bg-hover-strong: var(--colorNeutralBackground3);
+  --bg-hover-accent: #deecf9;
+  --bg-content: var(--colorNeutralBackground1);
+  --icon-muted: #8a8886;
+  --danger: #d13438;
+  --danger-bg: #fdf3f3;
+  --danger-border: #f0c8c9;
+  --search-hit-bg: #ffe28a;
+  --search-hit-active-bg: #ff9632;
+  --search-hit-active-ink: #fff;
+  --success: #107c41;
+  --success-bg: #eaf7ef;
+  --success-border: #c8e8d4;
+  --color-bg-overlay: rgb(0 0 0 / 40%);
+  --shadow-modal-strong: var(--shadow-fluent-28);
+  --shadow-btn-hover: var(--shadow-fluent-4);
+  --shadow-menu: var(--shadow-fluent-8);
+
+  /* ── AI Panel Colors ── */
+  --color-btn-primary: var(--colorNeutralForeground1);
+  --color-btn-primary-hover: #3b3a39;
+  --color-btn-primary-text: #ffffff;
+  --color-ai-action: #0f6cbd;
+  --color-ai-action-hover: #115ea3;
+  --color-ai-action-text: #ffffff;
+  --color-brand-secondary: var(--colorBrandForeground1);
+  --color-text-primary: var(--colorNeutralForeground1);
+  --color-text-secondary: var(--colorNeutralForeground3);
+  --color-text-tertiary: var(--colorNeutralForeground4);
+  --color-bg-page: var(--colorNeutralBackground1);
+  --color-bg-subtle: var(--colorNeutralBackground3);
+  --color-border-default: var(--colorNeutralStroke2);
+  --color-border-strong: var(--colorNeutralStroke1);
+  --color-border-brand: var(--colorBrandStroke1);
+  --color-error: #d13438;
+  --color-error-hover: #a80000;
+
+  /* ── Typography Scale & Transitions ── */
+  --transition-fast: 100ms cubic-bezier(0.33, 0, 0.67, 1);
+  --transition-normal: 150ms cubic-bezier(0.33, 0, 0.67, 1);
+  --text-body-lg: 16px;
+  --text-small: 13px;
+  --text-caption: 11px;
 
   color-scheme: light;
 }
 
 [data-theme='dark'] {
-  --surface: #1e1e1e;
-  --surface-subtle: #2a2a2a;
-  --chrome-bg: #252525;
-  --canvas: #2b2b2b;
-  --border: #3a3a3a;
-  --border-subtle: #3a3a3a;
-  --border-strong: #555;
-  --border-hover: #555;
-  --text: #e4e4e4;
-  --text-primary: #e4e4e4;
-  --text-secondary: #a0a0a0;
-  --text-tertiary: #a0a0a0;
-  --text-muted: #8a8a8a;
-  --text-dim: #a0a0a0;
-  --hover: #333;
-  --pressed: #3c3c3c;
-  --active-bg: #454545;
-  --bg-hover: #333;
-  --bg-hover-subtle: #333;
-  --bg-hover-strong: #444;
-  --bg-hover-accent: #444;
-  --bg-content: #1a1a1a;
-  --icon-muted: #666;
-  --danger: #d13438;
+  /* ── Fluent 2 Elevation & Shadows (Dark) ── */
+  --shadow-fluent-2: 0 1.6px 3.6px 0 rgb(0 0 0 / 28%), 0 0.3px 0.9px 0 rgb(0 0 0 / 24%);
+  --shadow-fluent-4: 0 3.2px 7.2px 0 rgb(0 0 0 / 30%), 0 0.6px 1.8px 0 rgb(0 0 0 / 26%);
+  --shadow-fluent-8: 0 6.4px 14.4px 0 rgb(0 0 0 / 36%), 0 1.2px 3.6px 0 rgb(0 0 0 / 30%);
+  --shadow-fluent-16: 0 12.8px 28.8px 0 rgb(0 0 0 / 44%), 0 2.4px 7.2px 0 rgb(0 0 0 / 38%);
+  --shadow-fluent-28: 0 22.4px 50.4px 0 rgb(0 0 0 / 52%), 0 4.2px 12.6px 0 rgb(0 0 0 / 46%);
+
+  /* ── Fluent 2 Neutral Palette (Dark) ── */
+  --colorNeutralBackground1: #292929;
+  --colorNeutralBackground2: #242424;
+  --colorNeutralBackground3: #1f1f1f;
+  --colorNeutralBackground4: #141414;
+  --colorNeutralBackground1Hover: #383838;
+  --colorNeutralBackground1Pressed: #2e2e2e;
+  --colorNeutralBackground1Selected: #333333;
+  --colorNeutralStroke1: #444444;
+  --colorNeutralStroke2: #383838;
+  --colorNeutralStrokeSubtle: #333333;
+  --colorNeutralForeground1: #ffffff;
+  --colorNeutralForeground2: #d6d6d6;
+  --colorNeutralForeground3: #adadad;
+  --colorNeutralForeground4: #8a8a8a;
+  --colorNeutralForegroundDisabled: #5c5c5c;
+
+  /* ── Fluent 2 Brand / Primary Accent (Dark) ── */
+  --colorBrandBackground: #115ea3;
+  --colorBrandBackgroundHover: #0f6cbd;
+  --colorBrandBackgroundPressed: #2886de;
+  --colorBrandForeground1: #479ef5;
+  --colorBrandForeground2: #62abf5;
+  --colorBrandStroke1: #479ef5;
+  --colorBrandForegroundLink: #479ef5;
+
+  /* ── Chrome / App Aliases (Dark) ── */
+  --surface: var(--colorNeutralBackground1);
+  --surface-subtle: var(--colorNeutralBackground2);
+  --chrome-bg: var(--colorNeutralBackground2);
+  --canvas: var(--colorNeutralBackground3);
+  --border: var(--colorNeutralStroke2);
+  --border-subtle: var(--colorNeutralStrokeSubtle);
+  --border-strong: var(--colorNeutralStroke1);
+  --border-hover: #555555;
+  --text: var(--colorNeutralForeground1);
+  --text-primary: var(--colorNeutralForeground1);
+  --text-secondary: var(--colorNeutralForeground3);
+  --text-tertiary: var(--colorNeutralForeground4);
+  --text-muted: var(--colorNeutralForeground4);
+  --text-dim: #999999;
+  --hover: var(--colorNeutralBackground1Hover);
+  --pressed: var(--colorNeutralBackground1Pressed);
+  --active-bg: var(--colorNeutralBackground1Selected);
+  --bg-hover: var(--colorNeutralBackground1Hover);
+  --bg-hover-subtle: var(--colorNeutralBackground2);
+  --bg-hover-strong: var(--colorNeutralBackground1Hover);
+  --bg-hover-accent: #0f3d68;
+  --bg-content: var(--colorNeutralBackground1);
+  --icon-muted: #888888;
+  --danger: #f1707a;
   --danger-bg: #3a2020;
+  --danger-border: #5a3030;
   --search-hit-bg: #745a1e;
   --search-hit-active-bg: #d4781f;
-  --search-hit-active-ink: #1e1e1e;
-  --danger-border: #5a3030;
+  --search-hit-active-ink: #ffffff;
   --success: #52c082;
   --success-bg: #20342a;
   --success-border: #33543f;
   --color-bg-overlay: rgb(0 0 0 / 60%);
-  --shadow-modal-strong: 0 20px 25px rgb(0 0 0 / 30%);
-  --shadow-btn-hover: 0 2px 8px rgb(0 0 0 / 50%);
-  --shadow-menu: 0 8px 24px rgb(0 0 0 / 55%);
+  --shadow-modal-strong: var(--shadow-fluent-28);
+  --shadow-btn-hover: var(--shadow-fluent-4);
+  --shadow-menu: var(--shadow-fluent-8);
 
-  --color-btn-primary: #e4e4e4;
-  --color-btn-primary-hover: #d0d0d0;
+  /* ── AI Panel Colors (Dark) ── */
+  --color-btn-primary: var(--colorNeutralForeground1);
+  --color-btn-primary-hover: #e0e0e0;
   --color-btn-primary-text: #1e1e1e;
-  --color-ai-action: #e8663f;
-  --color-ai-action-hover: #f07a55;
+  --color-ai-action: var(--colorBrandBackground);
+  --color-ai-action-hover: var(--colorBrandBackgroundHover);
   --color-ai-action-text: #ffffff;
-  --color-brand-secondary: #4a9eff;
-  --color-text-primary: #e4e4e4;
-  --color-text-secondary: #a0a0a0;
-  --color-text-tertiary: #8a8a8a;
-  --color-bg-page: #1e1e1e;
-  --color-bg-subtle: #2a2a2a;
-  --color-border-default: #3a3a3a;
-  --color-border-strong: #555;
-  --color-border-brand: #4a9eff;
+  --color-brand-secondary: var(--colorBrandForeground1);
+  --color-text-primary: var(--colorNeutralForeground1);
+  --color-text-secondary: var(--colorNeutralForeground3);
+  --color-text-tertiary: var(--colorNeutralForeground4);
+  --color-bg-page: var(--colorNeutralBackground1);
+  --color-bg-subtle: var(--colorNeutralBackground2);
+  --color-border-default: var(--colorNeutralStroke2);
+  --color-border-strong: var(--colorNeutralStroke1);
+  --color-border-brand: var(--colorBrandStroke1);
+  --color-error: #f1707a;
+  --color-error-hover: #ff858f;
 
   color-scheme: dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']):not([data-theme='dark']) {
-    --surface: #1e1e1e;
-    --surface-subtle: #2a2a2a;
-    --chrome-bg: #252525;
-    --canvas: #2b2b2b;
-    --border: #3a3a3a;
-    --border-subtle: #3a3a3a;
-    --border-strong: #555;
-    --border-hover: #555;
-    --text: #e4e4e4;
-    --text-primary: #e4e4e4;
-    --text-secondary: #a0a0a0;
-    --text-tertiary: #a0a0a0;
-    --text-muted: #8a8a8a;
-    --text-dim: #a0a0a0;
-    --hover: #333;
-    --pressed: #3c3c3c;
-    --active-bg: #454545;
-    --bg-hover: #333;
-    --bg-hover-subtle: #333;
-    --bg-hover-strong: #444;
-    --bg-hover-accent: #444;
-    --bg-content: #1a1a1a;
-    --icon-muted: #666;
-    --danger: #d13438;
+    --shadow-fluent-2: 0 1.6px 3.6px 0 rgb(0 0 0 / 28%), 0 0.3px 0.9px 0 rgb(0 0 0 / 24%);
+    --shadow-fluent-4: 0 3.2px 7.2px 0 rgb(0 0 0 / 30%), 0 0.6px 1.8px 0 rgb(0 0 0 / 26%);
+    --shadow-fluent-8: 0 6.4px 14.4px 0 rgb(0 0 0 / 36%), 0 1.2px 3.6px 0 rgb(0 0 0 / 30%);
+    --shadow-fluent-16: 0 12.8px 28.8px 0 rgb(0 0 0 / 44%), 0 2.4px 7.2px 0 rgb(0 0 0 / 38%);
+    --shadow-fluent-28: 0 22.4px 50.4px 0 rgb(0 0 0 / 52%), 0 4.2px 12.6px 0 rgb(0 0 0 / 46%);
+
+    --colorNeutralBackground1: #292929;
+    --colorNeutralBackground2: #242424;
+    --colorNeutralBackground3: #1f1f1f;
+    --colorNeutralBackground4: #141414;
+    --colorNeutralBackground1Hover: #383838;
+    --colorNeutralBackground1Pressed: #2e2e2e;
+    --colorNeutralBackground1Selected: #333333;
+    --colorNeutralStroke1: #444444;
+    --colorNeutralStroke2: #383838;
+    --colorNeutralStrokeSubtle: #333333;
+    --colorNeutralForeground1: #ffffff;
+    --colorNeutralForeground2: #d6d6d6;
+    --colorNeutralForeground3: #adadad;
+    --colorNeutralForeground4: #8a8a8a;
+    --colorNeutralForegroundDisabled: #5c5c5c;
+
+    --colorBrandBackground: #115ea3;
+    --colorBrandBackgroundHover: #0f6cbd;
+    --colorBrandBackgroundPressed: #2886de;
+    --colorBrandForeground1: #479ef5;
+    --colorBrandForeground2: #62abf5;
+    --colorBrandStroke1: #479ef5;
+    --colorBrandForegroundLink: #479ef5;
+
+    --surface: var(--colorNeutralBackground1);
+    --surface-subtle: var(--colorNeutralBackground2);
+    --chrome-bg: var(--colorNeutralBackground2);
+    --canvas: var(--colorNeutralBackground3);
+    --border: var(--colorNeutralStroke2);
+    --border-subtle: var(--colorNeutralStrokeSubtle);
+    --border-strong: var(--colorNeutralStroke1);
+    --border-hover: #555555;
+    --text: var(--colorNeutralForeground1);
+    --text-primary: var(--colorNeutralForeground1);
+    --text-secondary: var(--colorNeutralForeground3);
+    --text-tertiary: var(--colorNeutralForeground4);
+    --text-muted: var(--colorNeutralForeground4);
+    --text-dim: #999999;
+    --hover: var(--colorNeutralBackground1Hover);
+    --pressed: var(--colorNeutralBackground1Pressed);
+    --active-bg: var(--colorNeutralBackground1Selected);
+    --bg-hover: var(--colorNeutralBackground1Hover);
+    --bg-hover-subtle: var(--colorNeutralBackground2);
+    --bg-hover-strong: var(--colorNeutralBackground1Hover);
+    --bg-hover-accent: #0f3d68;
+    --bg-content: var(--colorNeutralBackground1);
+    --icon-muted: #888888;
+    --danger: #f1707a;
     --danger-bg: #3a2020;
+    --danger-border: #5a3030;
     --search-hit-bg: #745a1e;
     --search-hit-active-bg: #d4781f;
-    --search-hit-active-ink: #1e1e1e;
-    --danger-border: #5a3030;
+    --search-hit-active-ink: #ffffff;
     --success: #52c082;
     --success-bg: #20342a;
     --success-border: #33543f;
     --color-bg-overlay: rgb(0 0 0 / 60%);
-    --shadow-modal-strong: 0 20px 25px rgb(0 0 0 / 30%);
-    --shadow-btn-hover: 0 2px 8px rgb(0 0 0 / 50%);
-    --shadow-menu: 0 8px 24px rgb(0 0 0 / 55%);
+    --shadow-modal-strong: var(--shadow-fluent-28);
+    --shadow-btn-hover: var(--shadow-fluent-4);
+    --shadow-menu: var(--shadow-fluent-8);
 
-    --color-btn-primary: #e4e4e4;
-    --color-btn-primary-hover: #d0d0d0;
+    --color-btn-primary: var(--colorNeutralForeground1);
+    --color-btn-primary-hover: #e0e0e0;
     --color-btn-primary-text: #1e1e1e;
-    --color-ai-action: #e8663f;
-    --color-ai-action-hover: #f07a55;
+    --color-ai-action: var(--colorBrandBackground);
+    --color-ai-action-hover: var(--colorBrandBackgroundHover);
     --color-ai-action-text: #ffffff;
-    --color-brand-secondary: #4a9eff;
-    --color-text-primary: #e4e4e4;
-    --color-text-secondary: #a0a0a0;
-    --color-text-tertiary: #8a8a8a;
-    --color-bg-page: #1e1e1e;
-    --color-bg-subtle: #2a2a2a;
-    --color-border-default: #3a3a3a;
-    --color-border-strong: #555;
-    --color-border-brand: #4a9eff;
+    --color-brand-secondary: var(--colorBrandForeground1);
+    --color-text-primary: var(--colorNeutralForeground1);
+    --color-text-secondary: var(--colorNeutralForeground3);
+    --color-text-tertiary: var(--colorNeutralForeground4);
+    --color-bg-page: var(--colorNeutralBackground1);
+    --color-bg-subtle: var(--colorNeutralBackground2);
+    --color-border-default: var(--colorNeutralStroke2);
+    --color-border-strong: var(--colorNeutralStroke1);
+    --color-border-brand: var(--colorBrandStroke1);
+    --color-error: #f1707a;
+    --color-error-hover: #ff858f;
 
     color-scheme: dark;
   }

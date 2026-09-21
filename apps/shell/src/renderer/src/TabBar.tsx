@@ -116,6 +116,19 @@ function HtmlIcon() {
   )
 }
 
+function ManuscriberIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 240 240" fill="none" aria-hidden="true">
+      <rect width="240" height="240" rx="48" fill="#6366F1" />
+      <path
+        d="M60 60H180V80H60V60ZM60 100H180V120H60V100ZM60 140H140V160H60V140ZM160 140L190 170L160 200V140Z"
+        fill="#fff"
+      />
+      <circle cx="175" cy="155" r="15" fill="#F59E0B" />
+    </svg>
+  )
+}
+
 const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
   home: <HomeIcon />,
   docs: <DocIcon />,
@@ -124,6 +137,7 @@ const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
   pdf: <PdfIcon />,
   markdown: <MarkdownIcon />,
   html: <HtmlIcon />,
+  manuscriber: <ManuscriberIcon />,
 }
 
 export function TabBar() {

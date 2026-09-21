@@ -4137,7 +4137,7 @@ export function startSheetsStandalone(): void {
   void applyMainProcessProxy()
   app.whenReady().then(() => {
     installRendererProtocol({ sheets: join(__dirname, '../renderer') })
-    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? app.getLocale()))
+    setUiLang(normalizeLang(process.env.GENOFFICE_LANG ?? 'id'))
     app.setAccessibilitySupportEnabled(true)
     installApplicationMenu()
     startCaptureServer()

@@ -108,6 +108,13 @@ const homeApi: HomeApi = {
   async newPdf(opts) {
     await ipcRenderer.invoke(HOME_CHANNELS.newPdf, opts)
   },
+  async newManuscriber(opts) {
+    await ipcRenderer.invoke(HOME_CHANNELS.newManuscriber, opts)
+  },
+  async openWithManuscriber(path) {
+    if (typeof path !== 'string' || !path) throw new Error('Invalid path.')
+    await ipcRenderer.invoke(HOME_CHANNELS.openWithManuscriber, path)
+  },
   async removeRecent(paths) {
     await ipcRenderer.invoke(HOME_CHANNELS.removeRecent, paths)
   },

@@ -75,7 +75,18 @@ if (winArm64 && !process.env.ELECTRON_BUILDER_7Z_FILTER) {
 }
 const winArch = winArm64 ? 'arm64' : 'x64'
 const winSidecarTarget = winArm64 ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-gnu'
-const WIN_SIDECAR = `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`
+function resolveWinSidecar() {
+  const candidates = [
+    `../sheets/native/xlsx-engine/target/${winSidecarTarget}/release/xlsx-sidecar.exe`,
+    `../sheets/native/xlsx-engine/target/x86_64-pc-windows-msvc/release/xlsx-sidecar.exe`,
+    `../sheets/native/xlsx-engine/target/release/xlsx-sidecar.exe`,
+  ]
+  for (const rel of candidates) {
+    if (existsSync(join(__dirname, rel))) return rel
+  }
+  return candidates[0]
+}
+const WIN_SIDECAR = resolveWinSidecar()
 
 // The gsk CLI tree below is copied verbatim from node_modules, and the
 // nested commander path depends on npm's current hoisting layout — fail the
@@ -219,6 +230,7 @@ function assertModuleTreesPresent() {
     '../pdf/out',
     '../markdown/out',
     '../html/out',
+    '../docxeditor/out',
     '../../packages/cli/dist/genoffice.cjs',
     '../../packages/cli/dist/node_modules/jsdom',
   ]) {
@@ -232,8 +244,8 @@ function assertModuleTreesPresent() {
 
 /** @type {import('electron-builder').Configuration} */
 const config = {
-  appId: 'com.genoffice.app',
-  productName: 'GenOffice',
+  appId: 'com.manuscriber.app',
+  productName: 'Manuscriber',
   // Resolved from the installed electron package so dependency bumps can
   // never leave a stale hard-coded pin behind (packaging would silently ship
   // the old runtime).
@@ -274,6 +286,10 @@ const config = {
     {
       from: '../html/out',
       to: 'modules/html',
+    },
+    {
+      from: '../docxeditor/out',
+      to: 'modules/docxeditor',
     },
     // PDF text editing engines: the bundled main resolves these under
     // Resources/wasm when node_modules is absent (apps/pdf/src/main/wasm-path.ts)
@@ -464,6 +480,7 @@ const config = {
         arch: [winArch],
       },
     ],
+    artifactName: 'ManuscriberSetup-${version}-${arch}.${ext}',
     extraResources: [
       {
         from: WIN_SIDECAR,
@@ -559,6 +576,8 @@ const config = {
   nsis: {
     oneClick: false,
     allowToChangeInstallationDirectory: true,
+    shortcutName: 'Manuscriber',
+    uninstallDisplayName: 'Manuscriber',
   },
   beforePack: async (context) => {
     assertModuleTreesPresent()
