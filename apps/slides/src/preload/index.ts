@@ -111,6 +111,7 @@ const api: SlidesApi = {
     return () => ipcRenderer.removeListener('app:auto-save-default-changed', listener)
   },
   getAiPanelPrefs: () => ipcRenderer.invoke('app:get-ai-panel-prefs'),
+  setAiPanelPrefs: (patch) => ipcRenderer.invoke('app:set-ai-panel-prefs', patch),
   onAiPanelPrefsChanged: (handler) => {
     const listener = (_event: IpcRendererEvent, prefs: AiPanelPrefs) => handler(prefs)
     ipcRenderer.on('app:ai-panel-prefs-changed', listener)
@@ -262,6 +263,8 @@ const api: SlidesApi = {
   getChartData: (slideIndex: number, sourceId: string) =>
     ipcRenderer.invoke('slides:get-chart-data', slideIndex, sourceId),
   copyElements: (op: CopyElementsOp) => ipcRenderer.invoke('slides:copy-elements', op),
+  copyElementsImage: (clipboardToken: string, pngBase64: string) =>
+    ipcRenderer.invoke('slides:copy-elements-image', clipboardToken, pngBase64),
   pasteElements: (op: PasteElementsOp) => ipcRenderer.invoke('slides:paste-elements', op),
   duplicateElements: (op: DuplicateElementsOp) =>
     ipcRenderer.invoke('slides:duplicate-elements', op),
@@ -377,7 +380,10 @@ const api: SlidesApi = {
     ipcRenderer.invoke('ai:image-search', query, maxResults),
   insertImageUrl: (op: {
     slideIndex: number
-    url: string
+    url?: string
+    /** raw base64 of a user attachment (attachment:// reference) — no network fetch */
+    base64?: string
+    ext?: string
     xPx: number
     yPx: number
     wPx: number
@@ -387,7 +393,10 @@ const api: SlidesApi = {
   replacePictureUrl: (op: {
     slideIndex: number
     sourceId: string
-    url: string
+    url?: string
+    /** raw base64 of a user attachment (attachment:// reference) — no network fetch */
+    base64?: string
+    ext?: string
     keepSrcRect?: boolean
   }) => ipcRenderer.invoke('ai:replace-picture-url', op),
   generateImage: (op: {
@@ -396,6 +405,7 @@ const api: SlidesApi = {
     referenceImageUrls?: string[]
     aspectRatio?: string
     imageSize?: string
+    transparentBackground?: boolean
   }) => ipcRenderer.invoke('ai:generate-image', op),
   analyzeMedia: (op: { mediaUrls: string[]; requirements: string }) =>
     ipcRenderer.invoke('ai:analyze-media', op),
@@ -458,13 +468,6 @@ const projectApi: ProjectApi = {
   appendChat: (args) => ipcRenderer.invoke('project:appendChat', args),
   loadChat: (args) => ipcRenderer.invoke('project:loadChat', args),
   rebindChat: (args) => ipcRenderer.invoke('project:rebindChat', args),
-  // P1 extensions
-  listProjects: () => ipcRenderer.invoke('project:list'),
-  createProject: (args) => ipcRenderer.invoke('project:create', args),
-  renameProject: (args) => ipcRenderer.invoke('project:rename', args),
-  deleteProject: (args) => ipcRenderer.invoke('project:delete', args),
-  moveFile: (args) => ipcRenderer.invoke('project:moveFile', args),
-  getTimeline: (args) => ipcRenderer.invoke('project:timeline', args),
 }
 contextBridge.exposeInMainWorld('projectApi', projectApi)
 

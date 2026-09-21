@@ -2,12 +2,24 @@ export {
   buildContextMenuItems,
   contextMenuLabels,
   installContextMenu,
+  VIEW_IMAGE_CHANNEL,
   type ContextMenuItem,
   type ContextMenuLabels,
 } from './context-menu'
 export {
+  decodeDataUrl,
+  isSavableImageUrl,
+  saveImageFromUrl,
+  suggestImageFileName,
+  type SaveImageResult,
+} from './save-image'
+export {
+  aboutMenuItem,
   appMenuLabels,
+  checkUpdatesMenuItem,
   editMenuTemplate,
+  helpMenuTemplate,
+  setUpdateCheckInvoker,
   toggleDevToolsItem,
   viewMenuTemplate,
   windowMenuTemplate,
@@ -73,6 +85,7 @@ export {
 } from './headless-export'
 export {
   RENDERER_SCHEME,
+  DOCX_MEDIA_SCHEME_PRIVILEGE,
   RENDERER_SCHEME_PRIVILEGE,
   rendererUrl,
   resolveRendererFile,

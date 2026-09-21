@@ -2815,12 +2815,33 @@ th.cell-rev-del {
   overflow: hidden;
 }
 
+.nav-pane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 6px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
 .nav-pane-title {
-  padding: 10px 14px 8px;
   font-size: 12px;
   font-weight: 600;
   color: var(--text);
-  border-bottom: 1px solid var(--border);
+}
+
+.nav-pane-close {
+  display: flex;
+  border: none;
+  background: none;
+  padding: 3px;
+  border-radius: 4px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.nav-pane-close:hover {
+  background: var(--hover);
+  color: var(--text);
 }
 
 .nav-pane-list {
@@ -4206,6 +4227,12 @@ th.cell-rev-del {
   font-size: inherit;
 }
 
+/* text of a w:bidi paragraph whose runs carry no w:rtl: one LTR item on an RTL line (Word) */
+.doc-ltr-runs {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 .doc-link {
   color: var(--docs-paper-link);
   text-decoration: underline;
@@ -4296,6 +4323,7 @@ th.cell-rev-del {
   /* --li-marker-lh: 0 for scaled substitute glyphs; an oversized level w:sz sets the
      marker's natural height (Word does not grid-snap the number like a run) */
   line-height: var(--li-marker-lh, inherit);
+  vertical-align: var(--li-marker-va, baseline);
   /* w:lvl rPr color; the --dk-li-mc twin recolors it on the dark page */
   color: var(--li-marker-color, inherit);
 }
@@ -4493,9 +4521,9 @@ body.docs-crop-active .doc-protected[data-doc-protected='image'] .doc-img-wrap {
   pointer-events: none;
 }
 
-/* Native ProseMirror tables */
+/* Native ProseMirror tables: no vertical gap of their own (Word) */
 .doc-page > .doc-table {
-  margin: 2px 0;
+  margin: 0;
 }
 
 .doc-protected[data-doc-protected='table'] {
@@ -5002,6 +5030,8 @@ body.docs-crop-active .doc-protected[data-doc-protected='image'] .doc-img-wrap {
    the pagination preview clones per-page flow with no gaps, so it neutralizes it */
 .doc-protected-floating > .doc-textbox {
   translate: 0 var(--page-float-dy, 0px);
+  /* anchored shapes keep their declared extent past the column (Word) */
+  max-width: none;
 }
 .pv-clip .doc-protected-floating > .doc-textbox {
   translate: none;
@@ -5078,9 +5108,12 @@ body.docs-crop-active .doc-protected[data-doc-protected='image'] .doc-img-wrap {
 }
 
 /* anchor-paragraph text next to all-floating boxes keeps its flow line:
-   the wrapper takes the stray line's height instead of collapsing */
+   the wrapper takes the stray line's height instead of collapsing. flow-root
+   keeps the line's space-before inside, where Word's paragraph-relative box
+   offsets count from */
 .doc-protected.doc-protected-floating.doc-protected-floating-stray {
   height: auto;
+  display: flow-root;
 }
 
 /* preview: an anchor-shifted box reaching above its page top rides --pv-anchor-lift
@@ -5208,6 +5241,7 @@ body.docs-crop-active .doc-protected[data-doc-protected='image'] .doc-img-wrap {
   font-family: var(--li-marker-font, inherit);
   font-size: calc(var(--li-marker-size, 1em) * var(--li-marker-scale, 1));
   line-height: var(--li-marker-lh, inherit);
+  vertical-align: var(--li-marker-va, baseline);
   color: var(--li-marker-color, inherit);
 }
 
@@ -5238,6 +5272,7 @@ body.docs-crop-active .doc-protected[data-doc-protected='image'] .doc-img-wrap {
   font-family: var(--li-marker-font, inherit);
   font-size: calc(var(--li-marker-size, 1em) * var(--li-marker-scale, 1));
   line-height: var(--li-marker-lh, inherit);
+  vertical-align: var(--li-marker-va, baseline);
   color: var(--li-marker-color, inherit);
 }
 
@@ -6428,7 +6463,8 @@ body.docs-crop-active
   flex-direction: column;
   background: var(--color-bg-page);
   /* Same visible divider as the GenOffice Sheets panel: the editor canvas is gray, so the default border would drown */
-  border-right: 1px solid var(--color-border-strong);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--color-border-strong);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--color-border-strong);
   font-family: var(--gs-font-sans);
   color: var(--color-text-primary);
 }
@@ -6507,7 +6543,8 @@ body.docs-crop-active
   width: 34px;
   padding: 12px 2px;
   border: none;
-  border-right: 1px solid var(--border);
+  border-left: var(--ai-panel-border-left, 0px) solid var(--border);
+  border-right: var(--ai-panel-border-right, 1px) solid var(--border);
   background: var(--surface);
   color: var(--text);
   cursor: pointer;
@@ -11139,4 +11176,25 @@ tr > .page-gap-cut {
   color: var(--text-secondary);
   font-size: 12px;
   cursor: pointer;
+}
+
+/* Both script slots remain visible while editing mixed-language text. */
+.rb-font-slot-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.rb-font-scope-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.rb-font-scope-row select {
+  max-width: 190px;
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: transparent;
 }

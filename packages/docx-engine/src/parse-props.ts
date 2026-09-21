@@ -34,6 +34,7 @@ import type {
   ThemeFonts,
 } from './types'
 import { resolveThemeColor } from './theme'
+import { isOn } from './checkbox-control'
 
 /** No run un-hides itself and nothing anchors here (bookmarks, comments, sectPr,
  *  drawings, numbering): safe to collapse a style-vanished paragraph entirely */
@@ -265,6 +266,11 @@ export const JC_ALIGN: Record<string, ParaFormat['align']> = {
   right: 'right',
   end: 'right',
   both: 'justify',
+  // kashida/Thai justification variants: plain justify for non-Arabic/Thai text
+  lowKashida: 'justify',
+  mediumKashida: 'justify',
+  highKashida: 'justify',
+  thaiDistribute: 'justify',
   distribute: 'distribute',
 }
 
@@ -418,7 +424,7 @@ export function checkboxStateOf(beginRun: XNode | null): { checked: boolean } | 
   const state = findChild(box, 'w:checked') ?? findChild(box, 'w:default')
   if (!state) return { checked: false }
   const val = attrsOf(state)['w:val']
-  return { checked: val === undefined || val === '1' || val === 'true' || val === 'on' }
+  return { checked: isOn(val) }
 }
 
 /**
@@ -821,21 +827,23 @@ export function themedRFonts(
   const themedEa = themeVal(eaRef)
   const eaSlotEmpty =
     !themedEa && !!fonts && (eaRef === 'majorEastAsia' || eaRef === 'minorEastAsia')
-  // an empty cs slot likewise keeps the theme's authority over the literal
-  const themedOrEmptyCs = (ref: string | undefined): string | undefined => {
+  // an empty cs or EA slot likewise keeps the theme's authority over the
+  // literal: a Latin slot pointing at minorEastAsia renders the language
+  // default EA face (Word probe 2026-09-17: MS Mincho digits under ja-JP)
+  const themedOrEmptySlot = (ref: string | undefined): string | undefined => {
     const themed = themeVal(ref)
-    if (themed) return themed
-    return fonts && (ref === 'majorBidi' || ref === 'minorBidi')
-      ? emptyCsSlotFont(fonts, ref)
-      : undefined
+    if (themed || !fonts) return themed
+    if (ref === 'majorBidi' || ref === 'minorBidi') return emptyCsSlotFont(fonts, ref)
+    if (ref === 'majorEastAsia' || ref === 'minorEastAsia') return emptyEaSlotFont(fonts, ref)
+    return undefined
   }
-  const themedAscii = themedOrEmptyCs(attrs['w:asciiTheme'])
-  const themedHAnsi = themedOrEmptyCs(attrs['w:hAnsiTheme'])
+  const themedAscii = themedOrEmptySlot(attrs['w:asciiTheme'])
+  const themedHAnsi = themedOrEmptySlot(attrs['w:hAnsiTheme'])
   return {
     ascii: themedAscii ?? attrs['w:ascii'],
     hAnsi: themedHAnsi ?? attrs['w:hAnsi'],
     eastAsia: themedEa ?? (eaSlotEmpty ? emptyEaSlotFont(fonts!, eaRef) : attrs['w:eastAsia']),
-    cs: themedOrEmptyCs(attrs['w:cstheme']) ?? attrs['w:cs'],
+    cs: themedOrEmptySlot(attrs['w:cstheme']) ?? attrs['w:cs'],
     ...(eaSlotEmpty ? { eaSlotEmpty } : {}),
     themed: {
       ascii: themedAscii !== undefined,
@@ -850,7 +858,7 @@ export function themedRFonts(
  *  w:document/w:hdr instead of per element; Word honors the inheritance) */
 export function partXmlSpacePreserve(partXml: string, rootTag: string): boolean {
   const open = new RegExp(`<${rootTag}(\\s[^>]*)?>`).exec(partXml)?.[1] ?? ''
-  return /\sxml:space="preserve"/.test(open)
+  return /\sxml:space=(?:"preserve"|'preserve')/.test(open)
 }
 
 export function mergeRuns(runs: Run[]): Run[] {

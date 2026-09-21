@@ -92,7 +92,7 @@ export function setParaAttrs(
   attrs: Record<string, unknown>,
   /// Explicit target range: blur-committed inputs capture the selection at
   /// focus time — by blur, a click may already have moved the live selection
-  /// to another paragraph (alpha ledger r131 / bugbot).
+  /// to another paragraph.
   range?: { from: number; to: number },
 ): void {
   const size = editor.state.doc.content.size
@@ -294,7 +294,7 @@ export async function insertImageFromDataUrl(
       .run()
     // Pasting into an empty document leaves the image as the ONLY node with a
     // node-selection on it: there is no text position to type at, and the
-    // next keystroke REPLACES the picture (alpha ledger r152). Ensure a
+    // next keystroke REPLACES the picture. Ensure a
     // paragraph follows the image and put a text caret there — also what
     // Word does after inserting a picture.
     // A mid-paragraph insert already leaves the caret in the split-off rest

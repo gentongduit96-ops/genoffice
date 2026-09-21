@@ -372,6 +372,7 @@ const config = {
     {
       ext: 'docx',
       name: 'Word Document',
+      description: 'Word Document',
       role: 'Editor',
       icon: 'docx',
       mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -379,6 +380,7 @@ const config = {
     {
       ext: 'xlsx',
       name: 'Excel Workbook',
+      description: 'Excel Workbook',
       role: 'Editor',
       icon: 'xlsx',
       mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -393,6 +395,7 @@ const config = {
     {
       ext: 'pptx',
       name: 'PowerPoint Presentation',
+      description: 'PowerPoint Presentation',
       role: 'Editor',
       icon: 'pptx',
       mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -485,6 +488,11 @@ const config = {
       {
         from: WIN_SIDECAR,
         to: 'native/xlsx-sidecar.exe',
+      },
+      {
+        from: 'build/shell-new',
+        to: 'shell-new',
+        filter: ['*.docx', '*.xlsx', '*.pptx'],
       },
     ],
   },

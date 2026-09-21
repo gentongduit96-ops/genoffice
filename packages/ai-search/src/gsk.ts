@@ -17,10 +17,10 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 import { createRequire } from 'node:module'
 import {
-  COPYRIGHT_HOSTS,
   asRecord,
   firstItem,
   gskProxyUrl,
+  isCopyrightHost,
   safeHost,
   type ImageSearchResult,
   type WebSearchResult,
@@ -146,8 +146,9 @@ export function gskChildEnv(base: NodeJS.ProcessEnv = process.env): NodeJS.Proce
 // ── Low-level execution ─────────────────────────────────────────────
 
 /**
- * gsk output may have [INFO] log lines mixed in before the JSON; scan from the
- * end for the first line starting with { or [ and parse from there.
+ * gsk output may have [INFO] log lines mixed in before or after the JSON;
+ * scan for a line starting with { or [ and parse the longest valid JSON
+ * block from there, shrinking past any trailing logs.
  */
 export function parseGskOutput(stdout: string): unknown {
   const trimmed = stdout.trim()
@@ -160,10 +161,12 @@ export function parseGskOutput(stdout: string): unknown {
   for (let i = lines.length - 1; i >= 0; i--) {
     const line = lines[i]!.trim()
     if (line.startsWith('{') || line.startsWith('[')) {
-      try {
-        return JSON.parse(lines.slice(i).join('\n'))
-      } catch {
-        continue
+      for (let j = lines.length; j > i; j--) {
+        try {
+          return JSON.parse(lines.slice(i, j).join('\n'))
+        } catch {
+          continue
+        }
       }
     }
   }
@@ -213,22 +216,41 @@ function runGsk(args: string[], timeoutMs: number, signal?: AbortSignal): Promis
 
 // ── Search ──────────────────────────────────────────────────────────
 
+/** Max search results kept; longest snippet/title chars (prevents MB fields blowing context). */
+export const MAX_GSK_RESULTS = 20
+export const MAX_GSK_SNIPPET_CHARS = 2_000
+
+function normalizeMaxResults(n: number): number {
+  if (!Number.isFinite(n)) return 6
+  return Math.min(20, Math.max(1, Math.floor(n)))
+}
+
+function clipField(v: unknown): string {
+  const s = String(v ?? '')
+  return s.length > MAX_GSK_SNIPPET_CHARS ? s.slice(0, MAX_GSK_SNIPPET_CHARS) : s
+}
+
 /** Parses the `gsk search` response shape data.organic_results[{title,link,snippet}] (exported for tests) */
 export function parseGskWebSearch(
   raw: unknown,
   maxResults: number,
 ): { results: WebSearchResult[]; answer?: string } {
+  const bounded = normalizeMaxResults(maxResults)
   const data = asRecord(asRecord(raw).data ?? raw)
   const organic: unknown[] = Array.isArray(data.organic_results) ? data.organic_results : []
-  const results: WebSearchResult[] = organic.slice(0, maxResults).map((item) => {
+  const results: WebSearchResult[] = organic.slice(0, bounded).map((item) => {
     const o = asRecord(item)
     return {
-      title: String(o.title ?? ''),
-      url: String(o.link ?? ''),
-      snippet: String(o.snippet ?? ''),
+      title: clipField(o.title),
+      url: clipField(o.link),
+      snippet: clipField(o.snippet),
     }
   })
-  const answer = typeof data.answer === 'string' && data.answer ? data.answer : undefined
+  const answerRaw = typeof data.answer === 'string' && data.answer ? data.answer : undefined
+  const answer =
+    answerRaw !== undefined && answerRaw.length > MAX_GSK_SNIPPET_CHARS
+      ? answerRaw.slice(0, MAX_GSK_SNIPPET_CHARS)
+      : answerRaw
   return answer !== undefined ? { results, answer } : { results }
 }
 
@@ -249,7 +271,7 @@ export function parseGskImageSearch(raw: unknown, maxResults: number): ImageSear
     const img = asRecord(item)
     const imageUrl = String(img.image_url ?? img.imageUrl ?? '')
     if (!imageUrl) continue
-    if (COPYRIGHT_HOSTS.some((d) => imageUrl.toLowerCase().includes(d))) continue
+    if (isCopyrightHost(imageUrl)) continue
     const width = Number(img.width)
     const height = Number(img.height)
     const entry: ImageSearchResult = {

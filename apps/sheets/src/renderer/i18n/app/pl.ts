@@ -128,7 +128,6 @@ export const pl = {
   appMoreItems: '+{count} więcej…',
   appTruncationNote: 'Pierwsze {shown} z {total}',
   appGoToButtonTitle: 'Przejdź do (⌘G)',
-  appNameBoxTitle: 'Pole nazwy — wpisz adres lub nazwę, a następnie naciśnij Enter',
   appPivotChartHintIn: 'Utwórz wykres przestawny na podstawie bieżącej tabeli przestawnej',
   appPivotChartHintOut:
     'Najpierw zaznacz komórkę w obszarze wyników tabeli przestawnej, a następnie wybierz typ wykresu',
@@ -336,8 +335,6 @@ export const pl = {
     'Autouzupełnianie do obszaru, który wciąż jest ładowany strumieniowo, nie jest jeszcze dozwolone.',
   appDvNeedsIndexed:
     'Edycja poprawności danych wymaga najpierw pełnego zaindeksowania tego arkusza — spróbuj ponownie za chwilę.',
-  appDuplicateNeedsFullLoad:
-    'Duplikowanie arkusza wymaga trybu pełnego ładowania — ten skoroszyt jest zbyt duży i jest ładowany częściowo strumieniowo.',
   appPivotSheetNoDuplicate:
     'Ten arkusz zawiera tabelę przestawną — jego duplikowanie nie jest jeszcze obsługiwane.',
   appDuplicateScopedNames:
@@ -649,6 +646,9 @@ export const pl = {
     'Skoroszyt w pełni załadowany — formuły przeliczają się na żywo, wiersze/kolumny można edytować.',
   appRangeMustBeVector: '{range} musi być pojedynczym wierszem lub pojedynczą kolumną komórek.',
   appRangeTooManyCells: '{range} obejmuje ponad {max} komórek.',
+  appCopyLoadingRange: 'Wczytywanie {range} do skopiowania…',
+  appCopyValuesOnly:
+    '{range} skopiowano tylko jako wartości ({cells} komórek): style są zachowywane tylko do {max} komórek.',
   appSheetStillIndexing: 'Arkusz jest wciąż indeksowany — spróbuj ponownie za chwilę.',
   appPrintNothing: 'Arkusz nie zawiera nic do wydrukowania.',
   appPrintTooLarge:

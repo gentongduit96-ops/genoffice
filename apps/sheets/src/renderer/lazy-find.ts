@@ -30,7 +30,7 @@ import { FILE_READ_BATCH_CELLS, MAX_SCAN_CELLS } from './ai/workbook-search'
 import { t } from './i18n/locale'
 import { installSparseFind, type SpillLookup } from './sparse-find'
 import { netAxisDelta } from './view-transform'
-import type { LazyWorkbookState, UniverRuntime } from './univer-state'
+import { lazySheetMeta, type LazyWorkbookState, type UniverRuntime } from './univer-state'
 import { ensureLazyRangeLoaded, readSheetRangeMapped } from './univer-sync'
 
 /** Same match shape the built-in sheets provider produces (ISheetCellMatch). */
@@ -205,7 +205,7 @@ function makeCellMatch(
     // built-in model); plain cells behave exactly like in-memory ones.
     replaceable: isFormula ? findByFormula : cell.value !== null && cell.value !== undefined,
     matchedText: (findByFormula && isFormula ? cell.formula : scalarToText(cell.value)) ?? null,
-    ...(isFormula ? {} : { rawValue: cell.value }),
+    rawValue: isFormula ? undefined : cell.value,
     range: {
       subUnitId: sheetId,
       range: {
@@ -404,13 +404,12 @@ export class LazyExtendedFindModel extends FindModel {
       // materialized in the grid and the hit now belongs to the inner
       // session. Hand the cursor over THROUGH the inner model (not by
       // returning the match directly): later Next/Previous/Replace must
-      // continue from this position, not from a stale inner index (bugbot).
+      // continue from this position, not from a stale inner index.
       // With the selection sitting on the cell one stayIfOnMatch call lands
       // there; otherwise walk the inner cursor to the position — never
-      // return an unverified landing (bugbot round 2: that restarted the
-      // cursor walk) and never park a ghost cursor (round 3: a held extra
-      // that currentExtras() dropped skipped the inner session on the next
-      // user nav and could not self-recover).
+      // return an unverified landing (that restarted the cursor walk) and never
+      // park a ghost cursor (a held extra that currentExtras() dropped skipped
+      // the inner session on the next user nav and could not self-recover).
       const samePos = (candidate: IFindMatch | null): candidate is LazyCellMatch => {
         const range = candidate ? (candidate as LazyCellMatch).range : null
         return (
@@ -433,7 +432,7 @@ export class LazyExtendedFindModel extends FindModel {
         // the cursor sits on the taken-over cell (bounded by the list size).
         // stayIfOnMatch must NOT ride along: with the selection on any other
         // in-window hit each step would re-anchor there and never advance
-        // (bugbot round 4).
+        // again.
         let candidate = this.innerNeighbor(direction, {
           noFocus: true,
           ignoreSelection: true,
@@ -794,7 +793,7 @@ export class LazyExtendedFindModel extends FindModel {
       for (const cell of collectJournalMatches(this.state, sheetId, test)) {
         collected.push({ ...cell, sheetId })
       }
-      const meta = this.state.file.sheets.find((candidate) => candidate.id === sheetId)
+      const meta = lazySheetMeta(this.state, sheetId)
       // Sheets added this session live entirely in the journal.
       if (!meta || meta.rowCount <= 0 || meta.columnCount <= 0) {
         this.refreshExtras(collected, comparator, unitId)

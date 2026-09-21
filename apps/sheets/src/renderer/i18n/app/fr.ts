@@ -134,7 +134,6 @@ export const fr = {
   appMoreItems: '+{count} éléments…',
   appTruncationNote: '{shown} premiers sur {total}',
   appGoToButtonTitle: 'Atteindre (⌘G)',
-  appNameBoxTitle: 'Zone Nom — saisissez une adresse ou un nom, puis appuyez sur Entrée',
   appPivotChartHintIn:
     'Créer un graphique croisé dynamique à partir du tableau croisé dynamique actuel',
   appPivotChartHintOut:
@@ -351,8 +350,6 @@ export const fr = {
     "La recopie automatique vers une zone encore en cours de chargement en flux n'est pas encore autorisée.",
   appDvNeedsIndexed:
     "La modification de la validation des données nécessite que cette feuille soit d'abord entièrement indexée — réessayez dans un instant.",
-  appDuplicateNeedsFullLoad:
-    "La duplication d'une feuille nécessite le mode de chargement complet — ce classeur est trop volumineux et est chargé partiellement en flux.",
   appPivotSheetNoDuplicate:
     "Cette feuille contient un tableau croisé dynamique — sa duplication n'est pas encore prise en charge.",
   appDuplicateScopedNames:
@@ -683,6 +680,9 @@ export const fr = {
     'Classeur entièrement chargé — les formules se recalculent en direct, lignes/colonnes modifiables.',
   appRangeMustBeVector: '{range} doit être une seule ligne ou une seule colonne de cellules.',
   appRangeTooManyCells: '{range} couvre plus de {max} cellules.',
+  appCopyLoadingRange: 'Chargement de {range} pour la copie…',
+  appCopyValuesOnly:
+    '{range} copié en valeurs uniquement ({cells} cellules) : les styles ne sont conservés que jusqu’à {max} cellules.',
   appSheetStillIndexing: "La feuille est encore en cours d'indexation — réessayez dans un instant.",
   appPrintNothing: 'Cette feuille ne contient rien à imprimer.',
   appPrintTooLarge:

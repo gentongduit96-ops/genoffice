@@ -510,6 +510,46 @@ export function ExcelShell({
   useEffect(() => {
     if (!selectedChart && activeTab === 'Chart Design') setActiveTab('Home')
   }, [selectedChart, activeTab])
+  // Univer's formula-bar Name Box (the defined-name selector) is the only
+  // cell-reference box; the Go To ▾ arrow rides inside the bar next to it.
+  // The bar is Univer-owned DOM that can remount with the workbench, so the
+  // button is (re)inserted on mutation rather than rendered by React.
+  const gotoTip = t('appGoToButtonTitle')
+  const gotoTipRef = useRef(gotoTip)
+  gotoTipRef.current = gotoTip
+  useEffect(() => {
+    const button = document.querySelector<HTMLButtonElement>('.goto-in-bar')
+    if (button) button.dataset['tip'] = gotoTip
+  }, [gotoTip])
+  useEffect(() => {
+    const ensure = (): void => {
+      // The Name Box sits in a fixed-width block wrapper; the flex row is the
+      // bar itself, so the button must ride as the wrapper's sibling.
+      const wrapper = document.querySelector('[data-u-comp="defined-name"]')?.parentElement
+      const bar = wrapper?.parentElement
+      if (!wrapper || !bar) return
+      let button = bar.querySelector<HTMLButtonElement>('.goto-in-bar')
+      if (!button) {
+        button = document.createElement('button')
+        button.type = 'button'
+        button.className = 'goto-in-bar'
+        button.textContent = '▾'
+        button.setAttribute('aria-label', 'Go To')
+        button.addEventListener('click', () => setShowGoTo(true))
+        wrapper.after(button)
+      }
+      if (button.dataset['tip'] !== gotoTipRef.current) button.dataset['tip'] = gotoTipRef.current
+    }
+    ensure()
+    const container = document.getElementById('univer-container')
+    if (!container) return undefined
+    const observer = new MutationObserver(ensure)
+    observer.observe(container, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      document.querySelector('.goto-in-bar')?.remove()
+    }
+  }, [])
   const visibleTabs: readonly RibbonTab[] = selectedChart
     ? [...ribbonTabs, 'Chart Design']
     : ribbonTabs
@@ -520,7 +560,7 @@ export function ExcelShell({
       <header className={`excel-header ${collapse.rootClass}`} ref={collapse.rootRef}>
         <nav
           className={`ribbon-tabs ${IN_TAB ? '' : IS_MAC ? 'ribbon-tabs-mac' : 'ribbon-tabs-win'}`}
-          aria-label="Workbook commands"
+          aria-label={t('appScopeWorkbook')}
           onDoubleClick={collapse.onTabsDoubleClick}
         >
           <button
@@ -686,18 +726,6 @@ export function ExcelShell({
           onCollapse={() => setIsCopilotOpen(false)}
         />
         <div className="sheet-main">
-          {/* Excel's formula-bar row, Name Box only for now (fx bar TBD). */}
-          <div className="name-box-bar">
-            <NameBox activeCellA1={activeCellA1} onGoTo={onGoToReference} />
-            <button
-              className="name-box-goto"
-              data-tip={t('appGoToButtonTitle')}
-              aria-label="Go To"
-              onClick={() => setShowGoTo(true)}
-            >
-              ▾
-            </button>
-          </div>
           <section className="workbook-area">
             <div id="univer-container" className="spreadsheet" />
           </section>
@@ -890,58 +918,6 @@ export function ExcelShell({
   )
 }
 
-/// Excel's Name Box: echoes the active cell while idle; focusing it starts a
-/// draft, Enter jumps to the typed address or defined name (an invalid one
-/// keeps the draft and flags the input), Esc or blur cancels back to the
-/// echo. The echo prop updates via the SelectionChanged refresh in App.
-function NameBox({
-  activeCellA1,
-  onGoTo,
-}: {
-  readonly activeCellA1: string
-  readonly onGoTo: (ref: string) => string | null
-}): React.JSX.Element {
-  const { t } = useI18n()
-  const [draft, setDraft] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  return (
-    <input
-      className={`name-box${error === null ? '' : ' invalid'}`}
-      aria-label="Name Box"
-      data-tip={error ?? t('appNameBoxTitle')}
-      placeholder="A1"
-      spellCheck={false}
-      value={draft ?? activeCellA1}
-      onFocus={(event) => {
-        setDraft(activeCellA1)
-        event.target.select()
-      }}
-      onChange={(event) => {
-        setDraft(event.target.value)
-        setError(null)
-      }}
-      onBlur={() => {
-        setDraft(null)
-        setError(null)
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          const failure = onGoTo(draft ?? activeCellA1)
-          setError(failure)
-          if (failure === null) {
-            setDraft(null)
-            event.currentTarget.blur()
-          }
-        } else if (event.key === 'Escape') {
-          setDraft(null)
-          setError(null)
-          event.currentTarget.blur()
-        }
-      }}
-    />
-  )
-}
-
 const NO_SORT_LEVEL = -1
 
 function SortDialog({
@@ -981,7 +957,7 @@ function SortDialog({
       <div
         className="format-cells-dialog sort-dialog"
         role="dialog"
-        aria-label="Custom sort"
+        aria-label={t('appCustomSort')}
         onClick={(event) => event.stopPropagation()}
       >
         <header>{t('appSort')}</header>
@@ -1049,7 +1025,7 @@ function RemoveDuplicatesDialog({
       <div
         className="format-cells-dialog sort-dialog"
         role="dialog"
-        aria-label="Remove duplicates"
+        aria-label={t('appRemoveDuplicates')}
         onClick={(event) => event.stopPropagation()}
       >
         <header>{t('appRemoveDuplicates')}</header>
@@ -1214,7 +1190,7 @@ function LinkDialog({
       <div
         className="format-cells-dialog link-dialog"
         role="dialog"
-        aria-label="Insert link"
+        aria-label={t(currentTarget ? 'appEditLinkTitle' : 'appInsertLinkTitle')}
         onClick={(event) => event.stopPropagation()}
       >
         <header>{t(currentTarget ? 'appEditLinkTitle' : 'appInsertLinkTitle')}</header>

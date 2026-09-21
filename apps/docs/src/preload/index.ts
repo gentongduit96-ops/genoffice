@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
+import { VIEW_IMAGE_CHANNEL } from '../shared/ipc'
 import type { AiPanelPrefs } from '@genoffice/ui'
 import type {
   AiChatRequest,
@@ -38,6 +39,7 @@ const api: DesktopApi = {
     return () => ipcRenderer.removeListener('app:auto-save-default-changed', listener)
   },
   getAiPanelPrefs: () => ipcRenderer.invoke('app:get-ai-panel-prefs'),
+  setAiPanelPrefs: (patch) => ipcRenderer.invoke('app:set-ai-panel-prefs', patch),
   onAiPanelPrefsChanged: (handler) => {
     const listener = (_event: IpcRendererEvent, prefs: AiPanelPrefs) => handler(prefs)
     ipcRenderer.on('app:ai-panel-prefs-changed', listener)
@@ -99,10 +101,21 @@ const api: DesktopApi = {
     return () => ipcRenderer.removeListener('docs:teardown', listener)
   },
   respellKick: () => ipcRenderer.invoke('docs:respell-kick'),
+  spellDiag: (line: string) => ipcRenderer.send('docs:spell-diag', line),
   saveDocxAs: (defaultName: string, data: ArrayBuffer, sourcePath?: string | null) =>
     ipcRenderer.invoke('docs:save-as', defaultName, data, sourcePath ?? null),
   saveDocxNew: (defaultName: string, data: ArrayBuffer) =>
     ipcRenderer.invoke('docs:save-new', defaultName, data),
+  saveDocxTo: (path: string, data: ArrayBuffer, overwrite: boolean) =>
+    ipcRenderer.invoke('docs:save-to', path, data, overwrite === true),
+  onMcpCommand: (handler) => {
+    const listener = (_event: IpcRendererEvent, message: Parameters<typeof handler>[0]) =>
+      handler(message)
+    ipcRenderer.on('docs:mcp-command', listener)
+    return () => ipcRenderer.removeListener('docs:mcp-command', listener)
+  },
+  reportMcpResult: (result) => ipcRenderer.send('docs:mcp-result', result),
+  signalMcpReady: () => ipcRenderer.send('docs:mcp-ready'),
   getRecentFiles: () => ipcRenderer.invoke('docs:recent'),
   pickImage: () => ipcRenderer.invoke('docs:pick-image'),
   fontMetrics: (family: string) => ipcRenderer.invoke('docs:font-metrics', family),
@@ -128,6 +141,16 @@ const api: DesktopApi = {
     ipcRenderer.invoke('docs:print-pdf-buffer', pageWidthTwips, pageHeightTwips, scale),
   saveMergedPdf: (defaultName: string, base64Parts: string[], outPath?: string) =>
     ipcRenderer.invoke('docs:save-merged-pdf', defaultName, base64Parts, outPath),
+  pickExportImagesTarget: () => ipcRenderer.invoke('docs:pick-export-images-target'),
+  takeExportPdf: (pdfPath: string) => ipcRenderer.invoke('docs:take-export-pdf', pdfPath),
+  writeExportImage: (dir: string, fileName: string, pngBase64: string) =>
+    ipcRenderer.invoke('docs:write-export-image', dir, fileName, pngBase64),
+  saveImageAs: (src: string) => ipcRenderer.invoke('docs:save-image-as', src),
+  onViewImage: (handler) => {
+    const listener = (_event: IpcRendererEvent, src: string) => handler(src)
+    ipcRenderer.on(VIEW_IMAGE_CHANNEL, listener)
+    return () => ipcRenderer.removeListener(VIEW_IMAGE_CHANNEL, listener)
+  },
   getAiSettings: () => ipcRenderer.invoke('ai:get-settings'),
   setAiSettings: (settings: AiSettings) => ipcRenderer.invoke('ai:set-settings', settings),
   aiChat: (request: AiChatRequest) => ipcRenderer.invoke('ai:chat', request),
@@ -139,6 +162,8 @@ const api: DesktopApi = {
     ipcRenderer.invoke('ai:web-search', query, maxResults),
   imageSearch: (query: string, maxResults?: number) =>
     ipcRenderer.invoke('ai:image-search', query, maxResults),
+  analyzeMedia: (op: { mediaUrls: string[]; requirements: string }) =>
+    ipcRenderer.invoke('ai:analyze-media', op),
   fetchImage: (url: string) => ipcRenderer.invoke('ai:fetch-image', url),
   aiGenerateImage: (op: { prompt: string; aspectRatio?: string }) =>
     ipcRenderer.invoke('docs:ai-generate-image', op),
@@ -207,13 +232,6 @@ const projectApi: ProjectApi = {
   appendChat: (args) => ipcRenderer.invoke('project:appendChat', args),
   loadChat: (args) => ipcRenderer.invoke('project:loadChat', args),
   rebindChat: (args) => ipcRenderer.invoke('project:rebindChat', args),
-  // P1 extensions
-  listProjects: () => ipcRenderer.invoke('project:list'),
-  createProject: (args) => ipcRenderer.invoke('project:create', args),
-  renameProject: (args) => ipcRenderer.invoke('project:rename', args),
-  deleteProject: (args) => ipcRenderer.invoke('project:delete', args),
-  moveFile: (args) => ipcRenderer.invoke('project:moveFile', args),
-  getTimeline: (args) => ipcRenderer.invoke('project:timeline', args),
 }
 
 contextBridge.exposeInMainWorld('desktop', api)

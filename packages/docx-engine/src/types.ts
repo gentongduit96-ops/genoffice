@@ -1,3 +1,12 @@
+/** Picture watermark found in a header part (VML picture frame behind the body). */
+export interface PictureWatermarkInfo {
+  /** header-part relationship of the image */
+  rId: string
+  widthPt: number
+  heightPt: number
+  washout: boolean
+}
+
 /** author/date of one tracked change (a w:ins or w:del wrapper). */
 export interface RevisionInfo {
   author: string
@@ -53,7 +62,7 @@ export interface Run {
   /** Latin-slot font (w:rFonts ascii/hAnsi) when the run declares one; may equal `font`.
    * Kept separate so editing one script's font never flattens the other slot. */
   fontAscii?: string
-  /** the run's own East Asian slot (display-only; `font` falls back to the Latin slots) */
+  /** Explicit East Asian slot; unlike `font`, never derived from a Latin fallback. */
   eastAsiaFont?: string
   /** w:lang w:eastAsia of the run or its character style (display-only: Word applies
    *  kinsoku / hanging / punctuation compression only under a CJK East Asian language) */
@@ -147,6 +156,8 @@ export interface Run {
   /** Original field-begin run XML (w:fldChar + w:ffData), written back verbatim so form-field
    * definitions survive; when set, the run text is a synthesized glyph (☐/☒), not a cached result */
   fldBeginXml?: string
+  /** the field's begin fldChar carries w:dirty="true": Word recomputes the result on open */
+  fldDirty?: true
   /** w:sdtPr of a content-control checkbox (w14:checkbox) wrapping this run; the run text is the
    * box glyph, and write-back sets w14:checked from it */
   sdtCheckboxXml?: string
@@ -653,6 +664,8 @@ export interface SectionInfo {
   /** header/footer reference rIds, by variant */
   headerRefs: Partial<Record<'default' | 'first' | 'even', string>>
   footerRefs: Partial<Record<'default' | 'first' | 'even', string>>
+  /** editor-side: created by a not yet saved section break; its sectPr lives in the break paragraph's generated XML, not in a parsed block */
+  pendingBreak?: true
 }
 
 /** one rich paragraph of a header / footer part */
@@ -832,6 +845,8 @@ export interface HfImage {
   floating?: boolean
   /** behind body text (negative VML z-index / wp:anchor behindDoc): picture watermarks */
   behind?: boolean
+  /** the header's picture watermark shape (Word's WordPictureWatermark / ours) */
+  watermark?: boolean
   /** VML mso-position-horizontal / wp:positionH wp:align */
   posH?: 'left' | 'center' | 'right'
   /** VML mso-position-vertical / wp:positionV wp:align */
@@ -997,6 +1012,12 @@ export interface ChartAxis {
   line?: string
   /** c:delete: the axis (labels and line) is not drawn */
   deleted?: boolean
+  /** tick-label size in pt (c:txPr sz); absent = renderer default */
+  fontPt?: number
+  /** tick-label color (c:txPr solid fill), hex without '#'; absent = renderer default */
+  color?: string
+  /** major gridline color (c:majorGridlines); absent = the part draws no major gridlines */
+  gridLine?: string
 }
 
 /** One data series of an embedded chart, read from the cached values in its chart part. */
@@ -1038,8 +1059,19 @@ export interface ChartDisplay {
   holePct?: number
   /** pie: slice offset from the center as % of the radius (c:explosion) */
   explosionPct?: number
-  /** data labels (c:dLbls show* flags); absent = none */
-  dataLabels?: { val?: boolean; pct?: boolean; cat?: boolean }
+  /** data labels (c:dLbls show* flags, label text size/color, c:numFmt); absent = none */
+  dataLabels?: {
+    val?: boolean
+    pct?: boolean
+    cat?: boolean
+    fontPt?: number
+    color?: string
+    numFmt?: string
+  }
+  /** title text size in pt (c:title rich text sz); absent = renderer default */
+  titleFontPt?: number
+  /** legend text size in pt (c:legend/c:txPr sz); absent = renderer default */
+  legendFontPt?: number
   /** legend position (c:legend/c:legendPos); absent = no c:legend element */
   legendPos?: 'b' | 'l' | 'r' | 't' | 'tr'
   /** the chart part has no c:legend (models built without one keep the default legend) */
@@ -1173,9 +1205,13 @@ export interface TableCell {
   vMerge?: 'restart' | 'continue'
   /** cell shading fill, hex without '#' (w:shd w:fill) */
   fill?: string
-  /** first-run text color, hex without '#' */
+  /** text colour every run shares, else the table style's; hex without '#' */
   color?: string
   bold?: boolean
+  /** what the table style's conditional formatting hands to runs without their own rPr;
+   *  the cell paints only these (the aggregates above are already carried by the runs) */
+  styleColor?: string
+  styleBold?: true
   align?: ParaAlign
   /** vertical alignment (w:vAlign): top (default)/center/bottom */
   vAlign?: 'top' | 'center' | 'bottom'
@@ -1215,6 +1251,9 @@ export interface TableModel {
   widthPct?: number
   /** autofit layout (no fixed w:tblLayout; w:tblW auto/absent/zero or pct): display may widen columns to min-content */
   autoLayout?: boolean
+  /** colWidthsTwips are the unequal w:tblGrid Word saved for a tblW-auto table: Word's own
+   * layout, already sized to its words, so display widens a column only past a true overflow */
+  layoutGrid?: boolean
   /** editable Word AutoFit mode (w:tblLayout + w:tblW) */
   autoFit?: TableAutoFitMode
   /** literal w:tblLayout type="fixed": Word keeps the declared column widths even when the
@@ -1326,13 +1365,17 @@ export type ImageWrap =
 
 /** A new image to embed at save time (becomes word/media/... + relationship). */
 export interface NewImage {
-  /** raw image bytes, base64 encoded */
+  /** raw image bytes, base64 encoded (empty when sourcePart is set) */
   base64: string
   mime: 'image/png' | 'image/jpeg' | 'image/gif'
+  /** reuse this media part of the document being saved instead of landing base64 */
+  sourcePart?: string
   widthPx: number
   heightPx: number
   /** paragraph alignment for the image (w:jc) */
   align?: 'left' | 'center' | 'right'
+  /** alternative text (wp:docPr descr) */
+  altText?: string
   /** floating wrap mode; absent = inline */
   wrap?: ImageWrap
   /**
@@ -1341,7 +1384,7 @@ export interface NewImage {
    * wrap mode's default <wp:align> placement. `relativeTo: 'page'` pins both
    * axes to the page box instead (full-page backgrounds).
    */
-  posOffsetEmu?: { x: number; y: number; relativeTo?: 'page' }
+  posOffsetEmu?: { x: number; y: number; relativeTo?: 'page' | 'margin' }
   /**
    * stacking rank among anchored drawings (only with `wrap`): written as
    * relativeHeight base + zOrder, so overlapping behindDoc anchors keep a
@@ -1676,6 +1719,8 @@ export interface TextboxDisplay {
   floating?: boolean
   /** behindDoc="1" anchor: this box paints under the body text */
   behind?: boolean
+  /** wrapNone anchor: overlays the text with no flow footprint (a cell row does not grow for it) */
+  noWrap?: boolean
   /** wp:anchor relativeHeight rank (display-only): paint order among overlapping floats */
   z?: number
   /** first-page page-anchored cover art: offsets are raw page coordinates and
@@ -1791,6 +1836,7 @@ export interface StyleDisplay {
   strike?: boolean
   /** character border (rPr w:bdr) inherited by runs without their own */
   bdr?: Run['bdr']
+  eastAsiaFont?: string
   font?: string
   /** latin-slot font when it differs from the east-asian one (w:ascii/w:hAnsi) */
   fontAscii?: string
@@ -1921,6 +1967,12 @@ export interface StyleInfo {
   name: string
   type: 'paragraph' | 'character' | 'table'
   headingLevel?: number
+  /** headingLevel came from a basedOn ancestor, not this style's name or w:outlineLvl */
+  headingLevelInherited?: true
+  /** own w:outlineLvl 9: body text even when a basedOn ancestor is a heading */
+  headingOutlineOff?: true
+  /** w:basedOn (the parent's own id, unresolved) */
+  basedOn?: string
   /** w:semiHidden — Word itself hides it from the style gallery (e.g. DefaultParagraphFont) */
   semiHidden?: boolean
   /** w:qFormat — candidate for Word's quick style gallery */
@@ -2138,6 +2190,8 @@ export interface ParsedDoc {
   footerImages?: HfImage[] | null
   /** text watermark (VML textpath) in the default header, null when none */
   watermarkText?: string | null
+  /** picture watermark (VML picture frame) in the default header, null when none */
+  watermarkPicture?: PictureWatermarkInfo | null
   /** plain text of the default page footer (PAGE fields appear as PAGE_MARK) */
   footerText?: string | null
   /** the default footer contains an automatic page number field */

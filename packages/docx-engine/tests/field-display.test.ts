@@ -127,6 +127,15 @@ describe('field paragraph display model', () => {
     expect(leaders).toEqual(['hyphen', 'none', 'dot', undefined, 'underscore'])
   })
 
+  it('a TOC entry reads single-quoted tab stop values and leaders', async () => {
+    const body =
+      '<w:p><w:pPr><w:pStyle w:val="TOC1"/>' +
+      "<w:tabs><w:tab w:val='right' w:leader='dot' w:pos='9350'/></w:tabs></w:pPr>" +
+      '<w:r><w:t>Title</w:t></w:r><w:r><w:tab/></w:r><w:r><w:t>3</w:t></w:r></w:p>'
+    const doc = await parseDocx(await buildDocx({ bodyXml: body }))
+    expect(doc.blocks[0].fieldDisplay).toMatchObject({ kind: 'tocLine', leader: 'dot' })
+  })
+
   it('a TOC entry carries the leading result run face and weight (Word draws the entry with its runs)', async () => {
     const entry = (rPr: string) =>
       '<w:p><w:pPr><w:pStyle w:val="TOC2"/><w:tabs><w:tab w:val="right" w:pos="8786"/></w:tabs>' +
@@ -461,6 +470,18 @@ describe('field code spanning paragraphs', () => {
     expect(doc.blocks[1].type).toBe('paragraph')
   })
 
+  it('single-quoted fldChar runs fold like double-quoted ones', async () => {
+    const xml = SPLIT_CODE_PARAGRAPHS.replaceAll(
+      /w:fldCharType="(begin|separate|end)"/g,
+      "w:fldCharType='$1'",
+    )
+    const doc = await parseDocx(await buildDocx({ bodyXml: xml }))
+    expect(shownMarkers(doc.blocks)).toEqual([true, true, false, false])
+    const tail = doc.blocks[2]
+    expect(tail.fieldDisplay?.kind).toBe('text')
+    expect(tail.fieldDisplay?.left).toBe('Left {It’s not')
+  })
+
   it('paragraph marks inside a field result (TOC entries) stay visible', async () => {
     const doc = await parseDocx(
       await buildDocx({ bodyXml: TOC_ENTRY_PARAGRAPH + FIELD_END_PAGEBREAK_PARAGRAPH }),
@@ -617,6 +638,13 @@ describe('FORMCHECKBOX form fields', () => {
   it('checked state comes from w:checked (wins over w:default)', async () => {
     const doc = await parseDocx(
       await buildDocx({ bodyXml: checkboxParagraph('<w:default w:val="0"/><w:checked/>') }),
+    )
+    expect(doc.blocks[0].runs?.[1]).toMatchObject({ text: '☒', instrField: 'FORMCHECKBOX' })
+  })
+
+  it('reads uppercase checked values (TRUE/ON) like Word does', async () => {
+    const doc = await parseDocx(
+      await buildDocx({ bodyXml: checkboxParagraph('<w:checked w:val="ON"/>') }),
     )
     expect(doc.blocks[0].runs?.[1]).toMatchObject({ text: '☒', instrField: 'FORMCHECKBOX' })
   })
@@ -871,10 +899,58 @@ describe('w14:checkbox content controls', () => {
     expect(xml).toContain('yes')
   })
 
+  it('reads uppercase checked values (TRUE) as checked', async () => {
+    const xml = sdtCheckboxParagraph('1', '☐').replace('w14:val="1"', 'w14:val="TRUE"')
+    const doc = await parseDocx(await buildDocx({ bodyXml: xml }))
+    expect(doc.blocks[0].runs?.[1].text).toBe('☒')
+  })
+
   it('reads single-quoted checkbox glyph values', () => {
     const glyphs = sdtCheckboxGlyphs(
       "<w:sdtPr><w14:checkbox><w14:checkedState w14:val='2611'/><w14:uncheckedState w14:val='2610'/></w14:checkbox></w:sdtPr>",
     )
     expect(glyphs).toEqual({ checked: '☑', unchecked: '☐' })
+  })
+})
+
+describe('dirty inline fields', () => {
+  const DIRTY_DATE_P =
+    '<w:p><w:r><w:t xml:space="preserve">Printed </w:t></w:r>' +
+    '<w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>' +
+    '<w:r><w:instrText xml:space="preserve"> DATE \\@ "yyyy-MM-dd" </w:instrText></w:r>' +
+    '<w:r><w:fldChar w:fldCharType="separate"/></w:r>' +
+    '<w:r><w:t>2026-01-01</w:t></w:r>' +
+    '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
+
+  it('parses w:dirty on the begin fldChar into Run.fldDirty and writes it back', async () => {
+    const doc = await parseDocx(await buildDocx({ bodyXml: DIRTY_DATE_P }))
+    expect(doc.blocks[0].runs?.[1]).toMatchObject({
+      text: '2026-01-01',
+      instrField: 'DATE \\@ "yyyy-MM-dd"',
+      fldDirty: true,
+    })
+    const out = await saveDocx(doc, [
+      {
+        kind: 'generated',
+        block: {
+          type: 'paragraph',
+          runs: [
+            { text: 'Printed ' },
+            { text: '1', instrField: 'NUMPAGES', fldDirty: true },
+            { text: ' of ', instrField: undefined },
+            { text: '3', instrField: 'PAGE' },
+          ],
+        },
+      },
+    ])
+    const xml = await (await JSZip.loadAsync(out)).file('word/document.xml')!.async('string')
+    expect(xml).toContain('<w:fldChar w:fldCharType="begin" w:dirty="true"/>')
+    expect(xml).toMatch(/NUMPAGES[\s\S]*<w:fldChar w:fldCharType="begin"\/>[\s\S]*PAGE/)
+    const reparsed = await parseDocx(out)
+    const fields = reparsed.blocks[0].runs?.filter((r) => r.instrField) ?? []
+    expect(fields.map((r) => [r.instrField, r.fldDirty ?? false])).toEqual([
+      ['NUMPAGES', true],
+      ['PAGE', false],
+    ])
   })
 })

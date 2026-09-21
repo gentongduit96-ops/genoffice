@@ -129,7 +129,6 @@ export const ms = {
   appMoreItems: '+{count} lagi…',
   appTruncationNote: '{shown} pertama daripada {total}',
   appGoToButtonTitle: 'Pergi Ke (⌘G)',
-  appNameBoxTitle: 'Kotak Nama — taip alamat atau nama, kemudian tekan Enter',
   appPivotChartHintIn: 'Cipta Carta Pangsi daripada Jadual Pangsi semasa',
   appPivotChartHintOut: 'Pilih sel dalam output Jadual Pangsi dahulu, kemudian pilih jenis carta',
   appChartColumn: 'Lajur',
@@ -319,8 +318,6 @@ export const ms = {
   appAutofillStreaming: 'AutoIsi ke kawasan yang masih distrim belum dibenarkan.',
   appDvNeedsIndexed:
     'Mengedit pengesahihan data memerlukan helaian ini diindeks sepenuhnya dahulu — cuba lagi sebentar.',
-  appDuplicateNeedsFullLoad:
-    'Menduplikasi helaian memerlukan mod muat penuh — buku kerja ini terlalu besar dan distrim sebahagian.',
   appPivotSheetNoDuplicate:
     'Helaian ini mengandungi Jadual Pangsi — pendupikasiannya belum disokong.',
   appDuplicateScopedNames:
@@ -625,6 +622,9 @@ export const ms = {
     'Buku kerja dimuatkan sepenuhnya — formula dikira semula secara langsung, baris/lajur boleh diedit.',
   appRangeMustBeVector: '{range} mesti satu baris atau satu lajur sel.',
   appRangeTooManyCells: '{range} merangkumi lebih daripada {max} sel.',
+  appCopyLoadingRange: 'Memuatkan {range} untuk disalin…',
+  appCopyValuesOnly:
+    '{range} disalin sebagai nilai sahaja ({cells} sel): gaya hanya dikekalkan hingga {max} sel.',
   appSheetStillIndexing: 'Helaian masih diindeks — cuba lagi sebentar.',
   appPrintNothing: 'Helaian ini tiada apa untuk dicetak.',
   appPrintTooLarge:

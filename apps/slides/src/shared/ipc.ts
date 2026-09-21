@@ -457,9 +457,13 @@ export type EditBackgroundOp = {
 export interface CopyElementsOp {
   slideIndex: number
   sourceIds: string[]
+  /** Renderer-generated token tying a delayed PNG export to this copy. */
+  clipboardToken?: string
+  /** The copy backs a cut: the originals are being removed, so pasting back onto the source page lands in place. */
+  cut?: boolean
 }
 
-/** Paste clipboard elements onto the given page (repeated pastes auto-cascade the offset). */
+/** Paste clipboard elements onto the given page (pastes land at the source position; occupied spots cascade the offset). */
 export interface PasteElementsOp {
   slideIndex: number
   fitWidthPx: number
@@ -1038,6 +1042,20 @@ export interface ExportImagesResult {
   error?: string
 }
 
+/**
+ * Clickable link overlay on one exported PDF page: rect as fractions of the
+ * page box (0..1), href = URL or in-document page anchor ("#pgN"). The print
+ * window lays them over the page image as transparent <a> boxes, which
+ * printToPDF turns into PDF link annotations.
+ */
+export interface ExportPdfLink {
+  x: number
+  y: number
+  w: number
+  h: number
+  href: string
+}
+
 /** Export as PDF: the main process loads each page PNG in a hidden window then printToPDF. */
 export interface ExportPdfOp {
   /** Target pdf absolute path (chosen via pickExportPdfPath) */
@@ -1047,6 +1065,8 @@ export interface ExportPdfOp {
   /** Rendered pixel width/height of the slide page (used to compute the PDF page aspect ratio) */
   widthPx: number
   heightPx: number
+  /** Per-page clickable link overlays (element + text-run hyperlinks), same order as pngsBase64 */
+  links?: ExportPdfLink[][]
 }
 
 export interface ExportPdfResult {
@@ -1132,6 +1152,7 @@ export interface SlidesApi {
   onAutoSaveDefaultChanged: (handler: (value: AutoSaveDefault) => void) => () => void
   /** AI panel text size + chat-input spellcheck (Settings → General in the shell) */
   getAiPanelPrefs: () => Promise<AiPanelPrefs>
+  setAiPanelPrefs(patch: Partial<AiPanelPrefs>): Promise<AiPanelPrefs>
   onAiPanelPrefsChanged: (handler: (prefs: AiPanelPrefs) => void) => () => void
   /** press on the shell chrome (tab strip is a sibling WebContentsView whose
    *  clicks produce no DOM event here) — dismiss open popovers */
@@ -1343,6 +1364,8 @@ export interface SlidesApi {
   >
   /** Copy elements to the in-app clipboard; returns the number actually copied */
   copyElements: (op: CopyElementsOp) => Promise<number>
+  /** Add the renderer's PNG to the matching current element copy for external applications. */
+  copyElementsImage: (clipboardToken: string, pngBase64: string) => Promise<boolean>
   /** Paste; empty clipboard or failure returns null. Note the whole page's element ids update, requiring a whole-page replace */
   pasteElements: (
     op: PasteElementsOp,
@@ -1559,7 +1582,10 @@ export interface SlidesApi {
   }>
   insertImageUrl: (op: {
     slideIndex: number
-    url: string
+    url?: string
+    /** raw base64 of a user attachment (attachment:// reference) — no network fetch */
+    base64?: string
+    ext?: string
     xPx: number
     yPx: number
     wPx: number
@@ -1570,7 +1596,10 @@ export interface SlidesApi {
   replacePictureUrl: (op: {
     slideIndex: number
     sourceId: string
-    url: string
+    url?: string
+    /** raw base64 of a user attachment (attachment:// reference) — no network fetch */
+    base64?: string
+    ext?: string
     keepSrcRect?: boolean
   }) => Promise<RenderSlide | null>
   /** gsk (Genspark) AI image generation/editing, returns the image URL (error prompts login when logged out) */
@@ -1580,6 +1609,7 @@ export interface SlidesApi {
     referenceImageUrls?: string[]
     aspectRatio?: string
     imageSize?: string
+    transparentBackground?: boolean
   }) => Promise<{ url?: string; error?: string }>
   /** gsk (Genspark) media analysis: image/audio/video content understanding, returns analysis text */
   analyzeMedia: (op: {

@@ -133,7 +133,6 @@ export const de = {
   appMoreItems: '+{count} weitere…',
   appTruncationNote: 'Erste {shown} von {total}',
   appGoToButtonTitle: 'Gehe zu (⌘G)',
-  appNameBoxTitle: 'Namenfeld — Adresse oder Namen eingeben, dann Eingabetaste drücken',
   appPivotChartHintIn: 'PivotChart aus der aktuellen PivotTable erstellen',
   appPivotChartHintOut:
     'Wählen Sie zuerst eine Zelle im PivotTable-Ausgabebereich aus, dann einen Diagrammtyp',
@@ -340,8 +339,6 @@ export const de = {
     'Automatisches Ausfüllen in einen noch per Streaming geladenen Bereich ist noch nicht erlaubt.',
   appDvNeedsIndexed:
     'Das Bearbeiten der Datenüberprüfung erfordert, dass dieses Blatt zuerst vollständig indiziert ist — versuchen Sie es gleich noch einmal.',
-  appDuplicateNeedsFullLoad:
-    'Das Duplizieren eines Blatts erfordert den Volllademodus — diese Arbeitsmappe ist zu groß und wird teilweise per Streaming geladen.',
   appPivotSheetNoDuplicate:
     'Dieses Blatt enthält eine PivotTable — sein Duplizieren wird noch nicht unterstützt.',
   appDuplicateScopedNames:
@@ -672,6 +669,9 @@ export const de = {
   appRangeMustBeVector:
     '{range} muss eine einzelne Zeile oder eine einzelne Spalte von Zellen sein.',
   appRangeTooManyCells: '{range} umfasst mehr als {max} Zellen.',
+  appCopyLoadingRange: '{range} wird zum Kopieren geladen…',
+  appCopyValuesOnly:
+    '{range} nur als Werte kopiert ({cells} Zellen): Formate bleiben nur bis {max} Zellen erhalten.',
   appSheetStillIndexing: 'Das Blatt wird noch indiziert — versuchen Sie es gleich noch einmal.',
   appPrintNothing: 'Das Blatt enthält nichts zu drucken.',
   appPrintTooLarge:

@@ -1,3 +1,4 @@
+import { ScriptFonts } from './script-fonts'
 import { Editor, Extension, Node } from '@tiptap/core'
 import type { ChainedCommands, RawCommands } from '@tiptap/core'
 import { Gapcursor, UndoRedo } from '@tiptap/extensions'
@@ -13,6 +14,8 @@ import {
   type Transaction,
 } from '@tiptap/pm/state'
 import { Decoration, DecorationSet } from '@tiptap/pm/view'
+import { appendsAtEnd, touchedTopLevelBlocks } from './touched-blocks'
+import { installProseMirrorPerf } from './prosemirror-perf'
 import type { EditorView } from '@tiptap/pm/view'
 import {
   CellSelection,
@@ -37,6 +40,7 @@ import {
   cssLineHeight,
   isCjkFontName,
   lineHeightFactor,
+  symbolBulletLinePt,
   paraLineFactorCss,
   SIMSUN_GAP_CHAR_RE,
   simsunGapLineFactor,
@@ -54,6 +58,7 @@ import { noteMarkText } from '../note-format'
 import { t } from '../i18n/locale'
 import {
   ommlToMathML,
+  parseLazyMediaUrl,
   patchMathTokens,
   type ChartDisplay,
   type DiagramDisplay,
@@ -88,6 +93,8 @@ import { dropActiveSubEditor, notifySubEditorState, setActiveSubEditor } from '.
 import { type BorderLine, borderDrawnPx, borderTruePx } from './border-metrics'
 import { borderLineCss, paraBorderCss, paraBorderPadding, paraBorderPaddingDecls } from './hf-dom'
 import { paraFrameCss } from './para-frame'
+
+installProseMirrorPerf()
 
 export { borderLineCss }
 import {
@@ -134,7 +141,7 @@ import { constrainTableWidthAtCell } from './table-sizing'
 
 import {
   CHART_MAX_WIDTH_PX,
-  CHART_TITLE_ROW_PX,
+  chartTitleRowPx,
   cellBoxesSpec,
   drawChartSvg,
   renderChartSpec,
@@ -154,6 +161,7 @@ import {
   DelMark,
   InsMark,
   CtrlCheckboxMark,
+  FormatOffClearExtension,
   InstrFieldMark,
   SymMark,
   ItalicMark,
@@ -229,7 +237,7 @@ const anchorAttrs = {
   contextualSpacing: { default: null as boolean | null },
   // never copied to the second half of an Enter split: Word's page break is a
   // character before the paragraph content, so a newline must not clone the
-  // break onto the new paragraph (alpha ledger r157)
+  // break onto the new paragraph
   pageBreakBefore: { default: false, keepOnSplit: false },
   /** RTL paragraph (w:bidi); align is already the visual value */
   bidi: { default: false },
@@ -282,7 +290,7 @@ const anchorAttrs = {
   /** JSON marks snapshot for an empty block's caret (Word's pilcrow
       formatting): stamped while the caret holds stored marks in an empty
       block, restored as storedMarks when the caret re-enters bare — arrow
-      navigation must not drop the pending format (alpha ledger r114) */
+      navigation must not drop the pending format */
   caretMarks: { default: null as string | null },
 }
 
@@ -489,7 +497,7 @@ function perLineFactors(node: PmNode): { strut: string; runs: RunFactorRange[] }
  * a crafted/corrupt payload can't smuggle wrong-typed values into the model.
  * Identity/anchor attrs stay out on purpose: a pasted paragraph is NEW content,
  * so docxIndex (save patch anchor), bookmarks, comment endpoints, sdtShell and
- * revision metadata must not be duplicated by copy/paste (alpha ledger r117).
+ * revision metadata must not be duplicated by copy/paste.
  */
 const CLIPBOARD_PARA_ATTR_TYPES: Record<string, 'string' | 'number' | 'boolean'> = {
   styleId: 'string',
@@ -570,6 +578,25 @@ export function clipboardParaAttrs(el: HTMLElement): Record<string, unknown> | n
     attrs[key] = v
   }
   return Object.keys(attrs).length > 0 ? attrs : null
+}
+
+/**
+ * Word orders a run without w:rtl left-to-right even inside a w:bidi paragraph
+ * (probe 2026-09-16: "arabic (LATIN)" keeps the Latin on the right, a leading
+ * bullet glyph stays at the left edge). The paragraph keeps its RTL start side
+ * and mirrored indents; only the text is isolated as one LTR item when no run
+ * is an RTL run. Runs marked rtl (or inheriting it) keep the browser's RTL base.
+ */
+function paraContentSpec(node: PmNode): DOMOutputSpec | 0 {
+  if (!(node.attrs.bidi || node.attrs.bidiInferred) || !node.textContent) return 0
+  let rtlRun = false
+  node.descendants((child) => {
+    if (child.isText && child.marks.some((m) => m.attrs.cs === true || m.attrs.rtl === true)) {
+      rtlRun = true
+    }
+    return !rtlRun
+  })
+  return rtlRun ? 0 : ['span', { class: 'doc-ltr-runs' }, 0]
 }
 
 function blockAttrs(
@@ -1069,6 +1096,11 @@ export const DocInlineImage = Node.create({
         // a float excludes its whole margin box: without a shape the lines
         // above the picture (Word lays them at full width) would shorten too
         if (ty - qt > 0) styles.push(`shape-outside:inset(${px(ty - qt)} 0 0 0)`)
+        // clampCellImageTops fills --cell-lift once the cell top is measured
+        if (ty < 0 && !/layoutInCell="(?:0|false)"/.test(String(node.attrs.xml ?? ''))) {
+          margin.top = `calc(${px(ty)} + var(--cell-lift,0px))`
+          attrs['data-cell-lift'] = '1'
+        }
       }
     }
     // positionV line/center: lift so the picture centers on the anchor line
@@ -1217,7 +1249,7 @@ export const WordSelectAllDelete = Extension.create({
 
 /**
  * Enter must replace ANY non-empty selection with a paragraph break (Word).
- * Two selection shapes broke the default chain (alpha ledger r125/r129):
+ * Two selection shapes broke the default chain:
  * - Ctrl+A's AllSelection: every command in the split chain declines
  *   (splitBlock needs a textblock-depth selection; AllSelection's ends sit at
  *   doc depth 0) — the press was a silent no-op.
@@ -1239,8 +1271,8 @@ export const EnterReplacesSelection = Extension.create({
         // Word keeps the formatting of the START of the replaced selection
         // for what is typed next; the split-off caret often sits in an
         // EMPTIED paragraph with no neighbor to inherit from, so the first
-        // deleted character's marks must ride along explicitly (alpha
-        // ledger r133: keyboard whole-line selections type in theme font)
+        // deleted character's marks must ride along explicitly (keyboard
+        // whole-line selections otherwise type in the theme font)
         // paragraph formatting of the START of the replaced range: when the
         // selection consumes whole paragraphs the delete leaves a DEFAULT
         // filler block, so style-derived fonts, alignment and the
@@ -1252,7 +1284,7 @@ export const EnterReplacesSelection = Extension.create({
           // sits at doc depth 0, where nodeAt returns the block, not a run)
           const marks = firstTextMarksIn(sel.$from.doc, sel.from, sel.to)
           // formatting only: comment/link/ins/del must not reattach to new
-          // typing (they are inclusive:false for the same reason — bugbot)
+          // typing (they are inclusive:false for the same reason)
           const found = (marks ?? sel.$from.marks()).filter((mark) =>
             FORMAT_MARKS.has(mark.type.name),
           )
@@ -1327,7 +1359,7 @@ export const WordEditorShortcuts = Extension.create({
       // content — at offset 0 that is the second half (the new empty line
       // above must not steal it), everywhere else the first (splitting must
       // not clone the break onto the new paragraph and turn Enter into
-      // another page jump — alpha ledger r157). TipTap's keepOnSplit only
+      // another page jump). TipTap's keepOnSplit only
       // filters end-of-paragraph splits, so mid-splits are fixed up here.
       Enter: () => {
         const { $from, empty } = this.editor.state.selection
@@ -1391,7 +1423,7 @@ export const DocParagraph = Node.create({
     return [{ tag: 'p', getAttrs: (el) => clipboardParaAttrs(el as HTMLElement) }]
   },
   renderHTML({ node }) {
-    return ['p', blockAttrs(node), 0]
+    return ['p', blockAttrs(node), paraContentSpec(node)]
   },
 })
 
@@ -1418,7 +1450,7 @@ export const DocHeading = Node.create({
     const attrs = blockAttrs(node)
     // heading by direct w:outlineLvl alone: the built-in h1-h6 font rules skip this class
     if (node.attrs.outlineOnly) attrs.class = `${attrs.class ?? ''} doc-outline-only`.trim()
-    return [`h${level}`, attrs, 0]
+    return [`h${level}`, attrs, paraContentSpec(node)]
   },
 })
 
@@ -1481,7 +1513,7 @@ export const DocListItem = Node.create({
     ]
       .filter(Boolean)
       .join(' ')
-    return ['div', { ...base, class: cls }, 0]
+    return ['div', { ...base, class: cls }, paraContentSpec(node)]
   },
   addCommands() {
     return {
@@ -1668,84 +1700,115 @@ function hostsAnchoredPicture(node: PmNode): boolean {
 
 function lineFactorDecos(doc: PmNode): DecorationSet {
   const decos: Decoration[] = []
-  doc.descendants((node, pos) => {
-    if (!LINE_FACTOR_BLOCKS.has(node.type.name)) return true
-    // a class decoration instead of a stylesheet :has(): Blink's :has()
-    // invalidation crashed the renderer (OOM) on long picture-heavy documents
-    if (hostsAnchoredPicture(node)) {
-      decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'doc-anchor-origin' }))
-    }
-    if (node.textContent && !isSpaceOnlyParagraph(node)) {
-      let cached = lineFactorCache.get(node)
-      if (cached === undefined) {
-        const perLine = perLineFactors(node)
-        let style = `--doc-line-factor:${perLine ? perLine.strut : paraLineFactor(node)}`
-        let cls: string | undefined
-        const fam = paraDeclaredFontFamily(node)
-        if (fam) style += `;font-family:${fam}`
-        else if (paraMixedDeclaredCjk(node)) cls = 'doc-grid-strut'
-        const strut = explicitStrutHalfPoints(node)
-        if (strut) style += `;${strutFontCss(strut).join(';')}`
-        cached = { style, ...(cls ? { cls } : {}), ...(perLine ? { runs: perLine.runs } : {}) }
-        lineFactorCache.set(node, cached)
-      }
-      decos.push(
-        Decoration.node(pos, pos + node.nodeSize, {
-          style: cached.style,
-          ...(cached.cls ? { class: cached.cls } : {}),
-        }),
-      )
-      if (cached.runs) {
-        for (const r of cached.runs) {
-          decos.push(
-            Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, {
-              class: 'doc-run-lf',
-              style: r.style,
-            }),
-          )
-        }
-      }
-      if (node.attrs.autoSpace !== false) {
-        for (const r of autospaceRanges(node)) {
-          decos.push(
-            Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, { class: 'doc-autospace-pad' }),
-          )
-        }
-      }
-      // ・/〜 in SimSun-substituted runs: Word lifts the whole line to 1.7143 ×
-      // size (probe 2026-08-13); a taller inline strut reproduces the row lift.
-      // exact lineRule pins the line, so no lift there.
-      if (node.attrs.lineRule !== 'exact') {
-        const ranges = simsunGapRanges(node)
-        if (ranges.length > 0) {
-          const m =
-            Number(node.attrs.lineSpacing) ||
-            (node.attrs.lineRule === 'auto' && node.attrs.lineRawTwips
-              ? Number(node.attrs.lineRawTwips) / 240
-              : 1)
-          const gapStyle = `line-height:${cssSimsunGapLineExpr(m)}`
-          for (const r of ranges) {
-            decos.push(Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, { style: gapStyle }))
-          }
-        }
-      }
-      // symbols Chromium justifies like ideographs stay unstretched in non-CJK
-      // paragraphs (Word stretches only their spaces); CJK paragraphs keep
-      // Chromium's inter-ideograph distribution around them
-      if (
-        (node.attrs.align === 'justify' || node.attrs.align === 'distribute') &&
-        !textHasCjk(node.textContent)
-      ) {
-        for (const r of justifySymbolOffsets(node)) {
-          decos.push(
-            Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, { class: 'doc-justify-symbol' }),
-          )
-        }
-      }
-    }
-    return false
-  })
+  doc.descendants((node, pos) => pushLineFactorDecos(node, pos, decos))
   return DecorationSet.create(doc, decos)
+}
+
+/**
+ * Only the touched top-level blocks recompute; every other block's
+ * decorations ride the mapping. Decorations are a pure function of the block
+ * node, so the result equals a full rebuild — without DecorationSet.create's
+ * scan of every span for every top-level block, which made each edit or
+ * streamed chunk cost (blocks × decorations) on long documents.
+ */
+function updateLineFactorDecos(old: DecorationSet, tr: Transaction): DecorationSet {
+  const { doc } = tr
+  const touched = touchedTopLevelBlocks(tr)
+  if (!touched) return lineFactorDecos(doc)
+  // streamed tail chunks: mapping the whole set walked every decoration per chunk
+  let set = appendsAtEnd(tr) ? old : old.map(tr.mapping, doc)
+  const decos: Decoration[] = []
+  for (const offset of touched) {
+    const node = doc.nodeAt(offset)
+    if (!node) continue
+    const end = offset + node.nodeSize
+    // find() also returns neighbours that merely touch the boundary
+    const stale = set.find(offset, end).filter((d) => d.from >= offset && d.to <= end)
+    if (stale.length) set = set.remove(stale)
+    if (pushLineFactorDecos(node, offset, decos)) {
+      node.descendants((child, pos) => pushLineFactorDecos(child, offset + 1 + pos, decos))
+    }
+  }
+  return decos.length ? set.add(doc, decos) : set
+}
+
+/** decorations of one node; returns whether to descend into its children */
+function pushLineFactorDecos(node: PmNode, pos: number, decos: Decoration[]): boolean {
+  if (!LINE_FACTOR_BLOCKS.has(node.type.name)) return true
+  // a class decoration instead of a stylesheet :has(): Blink's :has()
+  // invalidation crashed the renderer (OOM) on long picture-heavy documents
+  if (hostsAnchoredPicture(node)) {
+    decos.push(Decoration.node(pos, pos + node.nodeSize, { class: 'doc-anchor-origin' }))
+  }
+  if (node.textContent && !isSpaceOnlyParagraph(node)) {
+    let cached = lineFactorCache.get(node)
+    if (cached === undefined) {
+      const perLine = perLineFactors(node)
+      let style = `--doc-line-factor:${perLine ? perLine.strut : paraLineFactor(node)}`
+      let cls: string | undefined
+      const fam = paraDeclaredFontFamily(node)
+      if (fam) style += `;font-family:${fam}`
+      else if (paraMixedDeclaredCjk(node)) cls = 'doc-grid-strut'
+      const strut = explicitStrutHalfPoints(node)
+      if (strut) style += `;${strutFontCss(strut).join(';')}`
+      cached = { style, ...(cls ? { cls } : {}), ...(perLine ? { runs: perLine.runs } : {}) }
+      lineFactorCache.set(node, cached)
+    }
+    decos.push(
+      Decoration.node(pos, pos + node.nodeSize, {
+        style: cached.style,
+        ...(cached.cls ? { class: cached.cls } : {}),
+      }),
+    )
+    if (cached.runs) {
+      for (const r of cached.runs) {
+        decos.push(
+          Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, {
+            class: 'doc-run-lf',
+            style: r.style,
+          }),
+        )
+      }
+    }
+    if (node.attrs.autoSpace !== false) {
+      for (const r of autospaceRanges(node)) {
+        decos.push(
+          Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, { class: 'doc-autospace-pad' }),
+        )
+      }
+    }
+    // ・/〜 in SimSun-substituted runs: Word lifts the whole line to 1.7143 ×
+    // size (probe 2026-08-13); a taller inline strut reproduces the row lift.
+    // exact lineRule pins the line, so no lift there.
+    if (node.attrs.lineRule !== 'exact') {
+      const ranges = simsunGapRanges(node)
+      if (ranges.length > 0) {
+        const m =
+          Number(node.attrs.lineSpacing) ||
+          (node.attrs.lineRule === 'auto' && node.attrs.lineRawTwips
+            ? Number(node.attrs.lineRawTwips) / 240
+            : 1)
+        const gapStyle = `line-height:${cssSimsunGapLineExpr(m)}`
+        for (const r of ranges) {
+          decos.push(Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, { style: gapStyle }))
+        }
+      }
+    }
+    // symbols Chromium justifies like ideographs stay unstretched in non-CJK
+    // paragraphs (Word stretches only their spaces); CJK paragraphs keep
+    // Chromium's inter-ideograph distribution around them
+    if (
+      (node.attrs.align === 'justify' || node.attrs.align === 'distribute') &&
+      !textHasCjk(node.textContent)
+    ) {
+      for (const r of justifySymbolOffsets(node)) {
+        decos.push(
+          Decoration.inline(pos + 1 + r.from, pos + 1 + r.to, { class: 'doc-justify-symbol' }),
+        )
+      }
+    }
+  }
+  return false
 }
 
 /** ranges (relative to the block's content start) of Chromium's justification symbols */
@@ -1779,7 +1842,7 @@ export const LineFactorExtension = Extension.create({
             // inserting pad widgets next to an active IME composition aborts it;
             // keep the old set mapped and refresh on compositionend
             if (editor?.view?.composing) return old.map(tr.mapping, tr.doc)
-            return lineFactorDecos(tr.doc)
+            return updateLineFactorDecos(old, tr)
           },
         },
         props: {
@@ -1799,6 +1862,20 @@ export const LineFactorExtension = Extension.create({
     ]
   },
 })
+
+function firstRunFontAscii(node: PmNode): string | null {
+  let font: string | null = null
+  node.descendants((child) => {
+    if (font !== null) return false
+    if (child.isText) {
+      const mark = child.marks.find((m) => m.type.name === 'docTextStyle')
+      font = ((mark?.attrs.fontAscii ?? mark?.attrs.font) as string | null) ?? null
+      return false
+    }
+    return true
+  })
+  return font
+}
 
 function firstRunSizeHalfPoints(node: PmNode): number | null {
   let sz: number | null = null
@@ -1948,6 +2025,17 @@ function paragraphTabStops(
 }
 
 /** the stray line's list geometry in docListItem attr shape (its w:ind is the anchor paragraph's) */
+/** the paragraph's direct w:lineRule, else its style's (strays carry no direct spacing) */
+function effectiveLineRule(
+  nodeAttrs: Record<string, unknown>,
+  storage: ListNumberingStorage,
+): string | undefined {
+  if (nodeAttrs.lineRule != null || nodeAttrs.lineRawTwips != null) {
+    return (nodeAttrs.lineRule as string | null) ?? 'auto'
+  }
+  return storage.styles?.get(String(nodeAttrs.styleId ?? ''))?.display?.lineRule
+}
+
 function strayGeometryAttrs(node: PmNode): Record<string, unknown> {
   const ind = node.attrs.strayIndent as StrayIndent | null
   return {
@@ -1960,6 +2048,51 @@ function strayGeometryAttrs(node: PmNode): Record<string, unknown> {
 
 /** the anchor paragraph's own empty line, laid out like any paragraph; the
  *  picture block ahead of it already carries the paragraph's page break */
+/** spacing / line-rule declarations of an anchor line spec for the stray line
+ *  (indent and alignment come from the stray's own attrs; fonts from its runs) */
+const STRAY_LINE_PROPS = new Set([
+  'margin-top',
+  'margin-bottom',
+  'line-height',
+  '--doc-line-mult',
+  '--doc-line-factor',
+  '--doc-grid-pitch',
+  'font-size',
+])
+const STRAY_LINE_CLASSES = new Set(['doc-lh-fixed', 'doc-nosnap', 'sp-auto-b', 'sp-auto-a'])
+
+function strayLineCss(spec: DomSpec, strayAttrs: Record<string, string>): string {
+  const attrs = spec[1] as Record<string, string>
+  for (const cls of (attrs.class ?? '').split(' ')) {
+    if (STRAY_LINE_CLASSES.has(cls)) strayAttrs.class += ` ${cls}`
+  }
+  return (attrs.style ?? '')
+    .split(';')
+    .filter((decl) => STRAY_LINE_PROPS.has(decl.slice(0, decl.indexOf(':')).trim()))
+    .join(';')
+}
+
+/** Chromium expands a tab to the next multiple of tab-size from the content
+ *  edge, so the first custom stop past the indent sizes that grid: exact for the
+ *  one-stop operator rows PDF converters emit, a plain grid beyond it */
+function strayTabCss(line: Record<string, unknown>, ind: StrayIndent | null): string {
+  let stops: TabStop[] = []
+  if (typeof line.tabStops === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(line.tabStops)
+      if (Array.isArray(parsed)) stops = parsed as TabStop[]
+    } catch {
+      /* malformed attr: default grid */
+    }
+  }
+  const left = ind?.leftTwips ?? (typeof line.indentLeft === 'number' ? line.indentLeft : 0)
+  const next = stops
+    .filter((s) => s.val !== 'clear' && s.val !== 'bar' && !s.rel && s.pos > left)
+    .map((s) => s.pos)
+    .sort((a, b) => a - b)[0]
+  return `white-space:pre-wrap;tab-size:${((next ?? left + 720) - left) / 20}pt`
+}
+
 export function anchorLineSpec(line: Record<string, unknown>): DomSpec {
   const attrs = blockAttrs({
     attrs: { ...line, docxIndex: null, pageBreakBefore: false },
@@ -2106,6 +2239,23 @@ export const ListNumberingExtension = Extension.create<object, ListNumberingStor
           // natural height (Word); equal sizes keep the inherited line untouched
           if (level.szHalfPoints && level.szHalfPoints > (runSizeHalf ?? para.sizeHalf)) {
             styles.push(MARKER_NATURAL_LINE_HEIGHT)
+          } else if (marker.symbolFont && effectiveLineRule(nodeAttrs, storage) !== 'exact') {
+            // Word's line is the tallest ascent plus the tallest descent on it:
+            // a Symbol bullet's ascent tops every Latin text face, so the box
+            // (bottom-aligned, the glyph stays on the baseline) sets that height
+            const textPt = (runSizeHalf ?? para.sizeHalf) / 2
+            const linePt = symbolBulletLinePt(
+              marker.symbolFont,
+              (szHalf ?? para.sizeHalf) / 2,
+              (stray ? null : firstRunFontAscii(nodes[i].node)) ?? para.family,
+              textPt,
+            )
+            if (linePt) {
+              styles.push(
+                `--li-marker-lh:calc(${linePt}pt * var(--doc-line-mult,1))`,
+                '--li-marker-va:bottom',
+              )
+            }
           }
           if (level.color) {
             styles.push(
@@ -2583,11 +2733,14 @@ export const DocTable = Node.create({
         styles.push(`width:min(${widthPx}px,${paper})`)
         centerMargin = `margin-left:calc((${contentW} - min(${widthPx}px,${paper}))/2)`
       } else {
+        // a negative w:tblInd moves the box into the left margin, so the same
+        // amount is added back to the right-hand spill allowance
         const indented =
-          !tblFloated && node.attrs.tblAlign !== 'right' && Number(node.attrs.indentTwips) > 0
+          !tblFloated && node.attrs.tblAlign !== 'right' && Number(node.attrs.indentTwips)
         const indentPx = indented ? Number(node.attrs.indentTwips) / 15 : 0
+        const shift = indentPx < 0 ? `+ ${(-indentPx).toFixed(1)}px` : `- ${indentPx.toFixed(1)}px`
         const spill = indentPx
-          ? `calc(${contentW} + ${spillMargin} - ${indentPx.toFixed(1)}px)`
+          ? `calc(${contentW} + ${spillMargin} ${shift})`
           : `calc(${contentW} + ${spillMargin})`
         widthExpr = `min(${widthPx}px,${spill})`
         styles.push(`width:${widthExpr}`)
@@ -2659,8 +2812,8 @@ export const DocTable = Node.create({
       // w:tblpX with horzAnchor="page" measures from the PAGE edge, not the
       // content box — subtract the left margin. And the offset is CLAMPED so
       // the table never hangs past the right content edge: unclamped
-      // page-anchored deal-doc captables rendered half off-page (alpha
-      // ledger, #genoffice-feedback task #6). Word keeps floats on the page.
+      // page-anchored captables rendered half off-page. Word keeps floats on
+      // the page.
       const fromPageEdge = node.attrs.tblFloatHorzAnchor === 'page'
       const tblWidth = Number(node.attrs.widthPx) || Number(node.attrs.tblFloatWidthPx) || 0
       const xSpec = node.attrs.tblFloatXSpec as string | null
@@ -2704,16 +2857,18 @@ export const DocTable = Node.create({
     // a suppressed text-anchored float with a negative w:tblpY still hangs that far
     // above its anchor paragraph in Word (cover logo strips reach into the top
     // margin), so the inline table keeps the lift as a negative top margin
-    const liftTwips =
-      node.attrs.tblFloatSuppressed &&
-      (node.attrs.tblFloatVertAnchor ?? 'text') === 'text' &&
-      Number(node.attrs.tblFloatYTwips) < 0
-        ? -Number(node.attrs.tblFloatYTwips)
+    const suppressedTextY =
+      node.attrs.tblFloatSuppressed && (node.attrs.tblFloatVertAnchor ?? 'text') === 'text'
+        ? Number(node.attrs.tblFloatYTwips) || 0
         : 0
+    const liftTwips = suppressedTextY < 0 ? -suppressedTextY : 0
     if (liftTwips > 0) {
       const lift = (liftTwips / 15).toFixed(1)
       styles.push(`margin-top:-${lift}px`)
       attrs['data-tblp-lift'] = lift
+    } else if (suppressedTextY > 0) {
+      // ... and a positive one keeps the table that far below its anchor
+      styles.push(`margin-top:${(suppressedTextY / 15).toFixed(1)}px`)
     }
     if (styles.length > 0) attrs.style = styles.join(';')
     // A colgroup with normalized percentages defines the column grid whenever the
@@ -3087,6 +3242,18 @@ export const NativeTableSupport = Extension.create({
 /** formats pmDocToSavePlan can rebuild into the docx (see imageFromProtectedAttrs) */
 const PERSISTABLE_IMAGE_URL = /^data:image\/(?:png|jpeg|gif);base64,/
 
+let lazyMediaHashes = new Set<string>()
+/** pictures served lazily from the open document persist by part reference */
+export function setLazyMediaHashes(hashes: Iterable<string>): void {
+  lazyMediaHashes = new Set(hashes)
+}
+const isLazyImage = (src: string): boolean => {
+  const hash = parseLazyMediaUrl(src)?.hash
+  return hash !== undefined && lazyMediaHashes.has(hash)
+}
+const persistableImage = (src: string): boolean =>
+  PERSISTABLE_IMAGE_URL.test(src) || isLazyImage(src)
+
 /** display attrs a copied picture needs to round-trip through clipboard HTML */
 /**
  * CSS filter pair for the affine map y = slope * (x + offset - 0.5) + 0.5.
@@ -3161,12 +3328,17 @@ export const ImageCopyExtension = Extension.create({
       const node = sel.node
       if (node.type.name !== 'docProtected' || node.attrs.blockType !== 'image') return false
       let dataUrl = node.attrs.imageDataUrl
-      if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image/')) return false
+      if (typeof dataUrl !== 'string') return false
+      if (!dataUrl.startsWith('data:image/') && !isLazyImage(dataUrl)) return false
+      const lazyPart = parseLazyMediaUrl(dataUrl)?.partPath
+      const directlyCopyable = lazyPart
+        ? /\.(?:png|jpe?g|gif)$/i.test(lazyPart)
+        : PERSISTABLE_IMAGE_URL.test(dataUrl)
       // the save pipeline persists only png/jpeg/gif; display-only formats
       // (bmp/webp/svg/tiff...) are transcoded to PNG from the already-decoded
       // DOM img so the copy stays saveable — undecodable ones keep the
-      // default HTML copy
-      if (!PERSISTABLE_IMAGE_URL.test(dataUrl)) {
+      // default HTML copy (a lazy picture is read from the file by the main process)
+      if (!directlyCopyable) {
         const dom = view.nodeDOM(sel.from) as HTMLElement | null
         const img = dom?.querySelector?.('img.doc-protected-img') as HTMLImageElement | null
         if (!img || !img.naturalWidth || !img.naturalHeight) return false
@@ -3334,7 +3506,7 @@ export const DocProtected = Node.create({
       const src = img?.getAttribute('src') ?? ''
       // persistable formats only: a bmp/webp/svg picture would display and
       // then silently vanish on save — the placeholder shell is honest
-      if (!PERSISTABLE_IMAGE_URL.test(src)) return null
+      if (!persistableImage(src)) return null
       let meta: Record<string, unknown> = {}
       try {
         meta = JSON.parse(el.getAttribute('data-image-meta') ?? '{}') as Record<string, unknown>
@@ -3366,7 +3538,7 @@ export const DocProtected = Node.create({
         getAttrs: (el) => {
           const img = el as HTMLImageElement
           const src = img.getAttribute('src') ?? ''
-          if (!PERSISTABLE_IMAGE_URL.test(src)) return false
+          if (!persistableImage(src)) return false
           let meta: Record<string, unknown> = {}
           try {
             meta = JSON.parse(img.getAttribute('data-image-meta') ?? '{}') as Record<
@@ -3763,7 +3935,7 @@ function protectedDomSpec(node: PmNode): DomSpec {
     }
     const children: DomSpec[] = sideBox
       ? [sideWrappedBoxSpec(sideBox)]
-      : boxes.map(renderTextboxSpec)
+      : boxes.map((b) => renderTextboxSpec(b))
     // the anchor paragraph's own text (e.g. a heading sharing its paragraph
     // with a sidebar box) renders as a display-only line before the boxes
     if (strayRuns?.length) {
@@ -3790,7 +3962,11 @@ function protectedDomSpec(node: PmNode): DomSpec {
         : ''
       const align = node.attrs.strayAlign as string | null
       const alignCss = align === 'center' || align === 'right' ? `text-align:${align}` : ''
-      const strayCss = [strayStyle, indCss, alignCss].filter(Boolean).join(';')
+      const line = node.attrs.anchorLine as Record<string, unknown> | null
+      const lineCss = line ? strayLineCss(anchorLineSpec(line), strayAttrs) : ''
+      const tabCss =
+        line && strayRuns.some((r) => r.text.includes('\t')) ? strayTabCss(line, ind) : ''
+      const strayCss = [lineCss, tabCss, strayStyle, indCss, alignCss].filter(Boolean).join(';')
       if (strayCss) strayAttrs.style = strayCss
       if (node.attrs.strayStyleId) strayAttrs['data-style'] = String(node.attrs.strayStyleId)
       const stray: DomSpec = ['div', strayAttrs, ...strayRuns.flatMap((run) => runSpanSpecs(run))]
@@ -5047,8 +5223,7 @@ function imageResizePlugin(): Plugin {
                       ...display,
                       widthPx: Math.round(w),
                       // the handle measures the plot SVG; heightPx spans title row + plot
-                      heightPx:
-                        Math.round(h) + (display.title !== undefined ? CHART_TITLE_ROW_PX : 0),
+                      heightPx: Math.round(h) + chartTitleRowPx(display),
                     },
                   }),
                 )
@@ -5720,6 +5895,7 @@ const textboxSubExtensions = [
   CtrlCheckboxMark,
   CheckboxToggleExtension,
   TextStyleMark,
+  FormatOffClearExtension,
   CommentMark,
   UndoRedo,
 ]
@@ -5732,7 +5908,7 @@ export interface SearchHighlight {
 }
 
 /**
- * Word's AutoFormat-as-you-type for links (alpha ledger r151): a URL followed
+ * Word's AutoFormat-as-you-type for links: a URL followed
  * by a space or Enter turns into a hyperlink. Runs on keydown BEFORE the key
  * itself applies (marks the URL, then lets the key proceed), matching Word's
  * behavior of linkifying the word just completed. Trailing punctuation stays
@@ -5780,6 +5956,7 @@ export const AutoLinkOnDelimiter = Extension.create({
 })
 
 export const editorExtensions = [
+  ScriptFonts,
   DocDocument,
   DocText,
   DocHardBreak,
@@ -5809,6 +5986,7 @@ export const editorExtensions = [
   CtrlCheckboxMark,
   RprChangeMark,
   TextStyleMark,
+  FormatOffClearExtension,
   CommentMark,
   InsMark,
   DelMark,

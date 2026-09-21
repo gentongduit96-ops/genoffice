@@ -32,6 +32,9 @@ export interface GenerateImageInput {
   aspectRatio?: string | undefined
   /** images to edit / draw from */
   references?: MediaBlob[] | undefined
+  /** ask for real PNG alpha where the API has a control for it (gpt-image background=transparent);
+   * vendors without one ignore the flag */
+  transparent?: boolean | undefined
 }
 
 export interface AnalyzeMediaInput {
@@ -233,6 +236,8 @@ async function generateImageOpenAi(
   const style = openAiImagesStyle(provider)
   const size = style.size(input.aspectRatio)
   const refs = input.references ?? []
+  // `background` exists only on the gpt-image family; dall-e-3 and lookalike vendors 400 on it
+  const transparent = input.transparent && /gpt-image/i.test(model)
   if (refs.length && style.edits === 'none') {
     throw new Error(
       `${metaOf(provider).label} cannot edit or reference images here; generate from the prompt alone or pick another image provider.`,
@@ -247,6 +252,7 @@ async function generateImageOpenAi(
         prompt: input.prompt,
         n: 1,
         ...(size ? { size } : {}),
+        ...(transparent ? { background: 'transparent' } : {}),
         ...style.bodyExtras,
         ...(refs.length ? { image: refs.map(dataUrl) } : {}),
       }),
@@ -259,6 +265,7 @@ async function generateImageOpenAi(
   form.set('model', model)
   form.set('prompt', input.prompt)
   if (size) form.set('size', size)
+  if (transparent) form.set('background', 'transparent')
   refs.forEach((ref, i) => {
     const ext = ref.mime.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png'
     form.append(
@@ -677,9 +684,12 @@ export async function analyzeMediaWithProvider(
 }
 
 /**
- * Cheap credential check — the settings-UI connection test; no image is
- * billed. A model listing is the closest thing every vendor has; vendors
- * without one answer 404/405 to a valid key, so only 401/403 count as failure.
+ * Cheap credential check for the settings-UI connection test; no image is
+ * billed. A model listing is the closest thing every vendor has. Vendors
+ * without a model-listing endpoint answer 404/405 even for a valid key, so
+ * only those two statuses count as a pass when the response is not ok.
+ * Every other non-ok status (auth failures, rate limits, server errors)
+ * is surfaced as a failure with the status code included.
  */
 export async function testMediaProvider(
   provider: ByokMediaProviderId,
@@ -701,11 +711,24 @@ export async function testMediaProvider(
             signal: guard,
           })
     if (resp.ok) return { ok: true }
+    // Vendors without a model-listing endpoint answer 404/405 to a valid
+    // key, so those statuses still mean the credentials are usable.
+    if (resp.status === 404 || resp.status === 405) return { ok: true }
     const body = await resp.text().catch(() => '')
-    if (resp.status === 401 || resp.status === 403 || provider === 'gemini') {
-      return { ok: false, error: `HTTP ${resp.status}: ${httpBodyDetail(body)}` }
+    const detail = httpBodyDetail(body)
+    if (resp.status === 429) {
+      return {
+        ok: false,
+        error: `HTTP 429: rate limit exceeded, retry later${detail ? ` (${detail})` : ''}`,
+      }
     }
-    return { ok: true }
+    if (resp.status >= 500) {
+      return {
+        ok: false,
+        error: `HTTP ${resp.status}: server error, retry later${detail ? ` (${detail})` : ''}`,
+      }
+    }
+    return { ok: false, error: `HTTP ${resp.status}: ${detail}` }
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : String(e) }
   }
