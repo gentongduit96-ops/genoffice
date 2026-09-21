@@ -1948,12 +1948,6 @@ export function Home() {
   const newFileOpts =
     selectedFolder && root && selectedFolder !== root.path ? { dir: selectedFolder } : undefined
 
-  const handleNewManuscriber = () => {
-    void window.aiOffice.newManuscriber(
-      selectedProjectId ? { projectId: selectedProjectId } : undefined,
-    )
-  }
-
   const NEW_ITEMS = [
     {
       ext: 'docx',

@@ -1286,6 +1286,9 @@ body.vib .home {
   border-radius: 8px;
   font: inherit;
   font-size: 14px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
 }
 
 .move-menu-wrap {
@@ -1349,10 +1352,6 @@ body.vib .home {
   z-index: 40;
   min-width: 140px;
   padding: 5px;
-}
-  background: var(--surface);
-  color: var(--text);
-  outline: none;
 }
 
 .picker-search:focus {

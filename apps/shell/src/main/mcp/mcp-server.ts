@@ -219,7 +219,7 @@ export class McpServerService {
       const newSessionId = sessionId ?? randomUUID()
       const created: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
         sessionIdGenerator: () => newSessionId,
-        onsessioninitialized: (sid) => {
+        onsessioninitialized: (sid: string) => {
           this.logger(`[mcp] session initialized: ${sid}`)
         },
       })

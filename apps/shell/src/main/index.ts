@@ -3037,6 +3037,8 @@ function newDocTab(): void {
   } catch (err) {
     surfaceNewTabError(err)
   }
+}
+
 function newManuscriberTab(): void {
   try {
     tabManager?.openManuscriberTab(undefined, { newBlank: true })
@@ -3146,7 +3148,6 @@ function openBlankSlidesTabForMcp(): number {
   return view.webContents.id
 }
 
->>>>>>> upstream/main
 function newSlideTab(): void {
   try {
     bindPendingDir('slide', tabManager?.openSlidesTab())
