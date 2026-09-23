@@ -54,6 +54,7 @@ export const th = {
   aiSumInsertFootnote: 'แทรกเชิงอรรถแล้ว',
   aiSumInsertEndnote: 'แทรกอ้างอิงท้ายเรื่องแล้ว',
   aiSumDeleteNote: 'ลบหมายเหตุแล้ว',
+  aiSumEditNote: 'แก้ไขหมายเหตุแล้ว',
   aiSumReadNotes: 'อ่านหมายเหตุ',
   aiSumAddComment: 'เพิ่มข้อคิดเห็น',
   aiSumDeleteComment: 'ลบข้อคิดเห็น',
@@ -163,6 +164,7 @@ export const th = {
   aiCmdNone: 'ไม่พบบล็อกที่ต้องแก้ไข เอกสารไม่มีการเปลี่ยนแปลง',
   aiCmdNoneSkipped:
     'ไม่มีบล็อกที่แก้ไขได้ เอกสารไม่มีการเปลี่ยนแปลง (ข้ามบล็อกที่ได้รับการป้องกัน {count} บล็อก ตาราง/รูปภาพไม่สามารถแก้ไขด้วยคำสั่งสไตล์ได้)',
+  aiCmdNoneUnchanged: 'บล็อกที่ตรงกัน {count} บล็อกไม่ได้ถูกแก้ไข เอกสารไม่มีการเปลี่ยนแปลง',
   aiCmdTextStyle: 'อัปเดตสไตล์ข้อความของ {count} บล็อกแล้ว',
   aiCmdMatchedStyle: 'ปรับสไตล์ข้อความที่ตรงกัน {count} จุดแล้ว ({blocks} บล็อก)',
   aiCmdParaStyle: 'อัปเดตการจัดรูปแบบย่อหน้าของ {count} บล็อกแล้ว',

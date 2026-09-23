@@ -56,6 +56,7 @@ export const cs = {
   aiSumInsertFootnote: 'Vložena poznámka pod čarou',
   aiSumInsertEndnote: 'Vložena vysvětlivka',
   aiSumDeleteNote: 'Poznámka odstraněna',
+  aiSumEditNote: 'Poznámka upravena',
   aiSumReadNotes: 'Čtení poznámek',
   aiSumAddComment: 'Komentář přidán',
   aiSumDeleteComment: 'Komentář smazán',
@@ -167,6 +168,7 @@ export const cs = {
   aiCmdNone: 'Žádné odpovídající bloky; dokument nebyl změněn.',
   aiCmdNoneSkipped:
     'Žádné upravitelné bloky; dokument nebyl změněn (přeskočeno {count} chráněných bloků – tabulky/obrázky nelze měnit příkazy stylů).',
+  aiCmdNoneUnchanged: 'Odpovídající bloky zůstaly beze změny: {count} – dokument nebyl změněn.',
   aiCmdTextStyle: 'Aktualizován styl textu u bloků: {count}',
   aiCmdMatchedStyle: 'Nastylováno shod: {count} v blocích: {blocks}',
   aiCmdParaStyle: 'Aktualizován formát odstavce u bloků: {count}',

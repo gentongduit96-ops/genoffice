@@ -56,6 +56,7 @@ export const ru = {
   aiSumInsertFootnote: 'Вставлена сноска',
   aiSumInsertEndnote: 'Вставлена концевая сноска',
   aiSumDeleteNote: 'Сноска удалена',
+  aiSumEditNote: 'Сноска изменена',
   aiSumReadNotes: 'Чтение сносок',
   aiSumAddComment: 'Примечание добавлено',
   aiSumDeleteComment: 'Примечание удалено',
@@ -167,6 +168,7 @@ export const ru = {
   aiCmdNone: 'Подходящих блоков не найдено; документ не изменен.',
   aiCmdNoneSkipped:
     'Нет блоков, доступных для изменения; документ не изменен (пропущено защищенных блоков: {count} — таблицы/изображения нельзя изменить командами стиля).',
+  aiCmdNoneUnchanged: 'Подходящие блоки остались без изменений: {count} — документ не изменен.',
   aiCmdTextStyle: 'Обновлен стиль текста в блоках: {count}',
   aiCmdMatchedStyle: 'Стиль применён к совпадениям: {count} (блоков: {blocks})',
   aiCmdParaStyle: 'Обновлен формат абзаца в блоках: {count}',

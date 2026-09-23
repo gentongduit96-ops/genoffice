@@ -56,6 +56,7 @@ export const hi = {
   aiSumInsertFootnote: 'फ़ुटनोट जोड़ा गया',
   aiSumInsertEndnote: 'एंडनोट जोड़ा गया',
   aiSumDeleteNote: 'नोट हटाया गया',
+  aiSumEditNote: 'नोट संपादित किया गया',
   aiSumReadNotes: 'नोट पढ़े गए',
   aiSumAddComment: 'टिप्पणी जोड़ी',
   aiSumDeleteComment: 'टिप्पणी हटाई',
@@ -165,6 +166,7 @@ export const hi = {
   aiCmdNone: 'कोई मेल खाता ब्लॉक नहीं; दस्तावेज़ में बदलाव नहीं हुआ।',
   aiCmdNoneSkipped:
     'कोई संपादन-योग्य ब्लॉक नहीं; दस्तावेज़ में बदलाव नहीं हुआ ({count} सुरक्षित ब्लॉक छोड़े गए — तालिका/चित्र शैली आदेशों से नहीं बदले जा सकते)।',
+  aiCmdNoneUnchanged: '{count} मेल खाते ब्लॉक अपरिवर्तित रहे; दस्तावेज़ में बदलाव नहीं हुआ।',
   aiCmdTextStyle: '{count} ब्लॉक की टेक्स्ट शैली अपडेट की गई',
   aiCmdMatchedStyle: '{blocks} ब्लॉक में {count} मिलानों पर शैली लागू की गई',
   aiCmdParaStyle: '{count} ब्लॉक का अनुच्छेद स्वरूप अपडेट किया गया',

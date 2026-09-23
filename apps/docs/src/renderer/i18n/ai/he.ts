@@ -54,6 +54,7 @@ export const he = {
   aiSumInsertFootnote: 'הערת שוליים נוספה',
   aiSumInsertEndnote: 'הערת סיום נוספה',
   aiSumDeleteNote: 'ההערה נמחקה',
+  aiSumEditNote: 'ההערה נערכה',
   aiSumReadNotes: 'קריאת הערות',
   aiSumAddComment: 'הערה נוספה',
   aiSumDeleteComment: 'הערה נמחקה',
@@ -160,6 +161,7 @@ export const he = {
   aiCmdNone: 'לא נמצאו בלוקים מתאימים; המסמך לא שונה.',
   aiCmdNoneSkipped:
     'אין בלוקים הניתנים לעריכה; המסמך לא שונה (דולגו {count} בלוקים מוגנים — טבלאות/תמונות אינן ניתנות לשינוי בפקודות סגנון).',
+  aiCmdNoneUnchanged: '{count} בלוקים מתאימים נותרו ללא שינוי; המסמך לא שונה.',
   aiCmdTextStyle: 'עודכן סגנון הטקסט ב-{count} בלוקים',
   aiCmdMatchedStyle: 'הסגנון הוחל על {count} התאמות ב-{blocks} בלוקים',
   aiCmdParaStyle: 'עודכן עיצוב הפסקה ב-{count} בלוקים',

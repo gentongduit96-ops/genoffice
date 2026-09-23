@@ -55,6 +55,7 @@ export const ja = {
   aiSumInsertFootnote: '脚注を挿入',
   aiSumInsertEndnote: '文末脚注を挿入',
   aiSumDeleteNote: '注を削除',
+  aiSumEditNote: '注を編集',
   aiSumReadNotes: '注を読み取り',
   aiSumAddComment: 'コメントを追加',
   aiSumDeleteComment: 'コメントを削除',
@@ -166,6 +167,8 @@ export const ja = {
   aiCmdNone: '変更対象のブロックが見つからなかったため、文書は変更されていません。',
   aiCmdNoneSkipped:
     '変更可能なブロックがないため、文書は変更されていません({count} 個の保護されたブロックをスキップ。表や画像などはスタイルコマンドでは変更できません)。',
+  aiCmdNoneUnchanged:
+    '該当する {count} 個のブロックは変更されなかったため、文書は変更されていません。',
   aiCmdTextStyle: '{count} 個のブロックの文字スタイルを更新しました',
   aiCmdMatchedStyle: '{count} 件の一致テキストのスタイルを更新しました({blocks} ブロック)',
   aiCmdParaStyle: '{count} 個のブロックの段落書式を更新しました',

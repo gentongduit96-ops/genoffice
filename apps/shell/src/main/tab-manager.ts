@@ -452,7 +452,24 @@ export class TabManager {
     if (target.view) target.view.setBounds(this.contentBounds())
     this.activeId = id
     this.refreshActiveTargets()
+    this.focusActiveView()
     this.onChanged()
+  }
+
+  /** Hand keyboard focus to the active tab's view. The click that opened or
+   *  switched a tab lands on the chrome webContents (tab strip, Home list),
+   *  and a WebContentsView made visible does not take focus on its own — so
+   *  without this, typing after every open/switch keeps going to a hidden
+   *  view. Home has no view of its own; the shell window's webContents is
+   *  the focus target there. Skipped while the window is unfocused
+   *  (background opens must not steal OS focus); the window's `focus`
+   *  handler re-runs it. */
+  focusActiveView(): void {
+    if (this.shellWindow.isDestroyed() || !this.shellWindow.isFocused()) return
+    const target = this.tabs.find((t) => t.id === this.activeId)
+    if (!target) return
+    if (target.view) target.view.webContents.focus()
+    else this.shellWindow.webContents.focus()
   }
 
   /** Re-point the process-global active-editor targets and the app menu at this
@@ -673,6 +690,31 @@ export class TabManager {
     }
   }
 
+  /** Remove a tab from the strip WITHOUT destroying its WebContentsView and
+   *  hand it to the caller ("Open in New Window" — the live document, unsaved
+   *  edits included, moves into a detached editor window). Null while a close
+   *  prompt is pending on the tab. */
+  detachTab(
+    id: string,
+  ): { view: WebContentsView; kind: TabKind; title: string; filePath?: string } | null {
+    if (id === HOME_ID) return null
+    const idx = this.tabs.findIndex((t) => t.id === id)
+    const tab = idx >= 0 ? this.tabs[idx] : undefined
+    if (!tab?.view || tab.present || this.closingIds.has(id)) return null
+    this.tabs.splice(idx, 1)
+    if (this.htmlFullScreenId === id) this.htmlFullScreenId = null
+    const view = tab.view
+    view.setVisible(false)
+    this.shellWindow.contentView.removeChildView(view)
+    if (this.activeId === id) {
+      const fallback = this.tabs[idx - 1] ?? this.tabs[0]
+      this.activateTab(fallback.id)
+    } else {
+      this.onChanged()
+    }
+    return { view, kind: tab.kind, title: tab.title, filePath: tab.filePath }
+  }
+
   /** the editor tab showing this file, whichever module owns it (path compared after resolving links) */
   findTabByPath(
     path?: string,
@@ -761,7 +803,7 @@ export class TabManager {
   }
 }
 
-function canonicalPath(path: string | undefined): string | undefined {
+export function canonicalPath(path: string | undefined): string | undefined {
   if (path === undefined) return undefined
   try {
     return realpathSync.native(path)

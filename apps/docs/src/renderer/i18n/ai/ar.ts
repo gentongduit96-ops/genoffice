@@ -54,6 +54,7 @@ export const ar = {
   aiSumInsertFootnote: 'تمت إضافة حاشية سفلية',
   aiSumInsertEndnote: 'تمت إضافة تعليق ختامي',
   aiSumDeleteNote: 'تم حذف الحاشية',
+  aiSumEditNote: 'تم تعديل الحاشية',
   aiSumReadNotes: 'قراءة الحواشي',
   aiSumAddComment: 'إضافة تعليق',
   aiSumDeleteComment: 'حذف تعليق',
@@ -163,6 +164,7 @@ export const ar = {
   aiCmdNone: 'لا توجد كتل مطابقة؛ لم يتغير المستند.',
   aiCmdNoneSkipped:
     'لا توجد كتل قابلة للتعديل؛ لم يتغير المستند (تم تخطي {count} كتلة محمية — لا يمكن تعديل الجداول/الصور بأوامر الأنماط).',
+  aiCmdNoneUnchanged: 'تُركت {count} كتلة مطابقة دون تغيير؛ لم يتغير المستند.',
   aiCmdTextStyle: 'تم تحديث نمط النص في {count} كتلة',
   aiCmdMatchedStyle: 'طُبق النمط على {count} تطابقات في {blocks} كتل',
   aiCmdParaStyle: 'تم تحديث تنسيق الفقرة في {count} كتلة',

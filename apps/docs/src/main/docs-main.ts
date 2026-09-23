@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto'
+import { handOffBytes } from './byte-handoff'
 import {
   appendFileSync,
   existsSync,
@@ -61,6 +62,8 @@ import {
   installRendererProtocol,
   registerRendererScheme,
   rendererUrl,
+  MAX_REMOTE_IMAGE_BYTES,
+  readBodyCapped,
 } from '@genoffice/electron-utils'
 import { configureMetricsCache, familyVerticalMetrics } from '@genoffice/font-metrics'
 import { createI18n, getUiLang, normalizeLang, setUiLang } from '@genoffice/i18n'
@@ -100,6 +103,7 @@ import {
   type LegacyAiSettings,
 } from '@genoffice/ai-provider'
 import { listCodexModels, shutdownCodexAppServers } from '@genoffice/ai-provider/codex-app-server'
+import { listCustomModelsForIpc } from '@genoffice/ai-provider/custom-models'
 import {
   ensureGenofficeLogin,
   gskApiKey,
@@ -131,11 +135,13 @@ import {
   adoptLazyMediaHashes,
   forgetLazyMediaOwner,
   materializeLazyDocx,
+  moveLazyMediaSource,
   openLazyDocx,
   pointLazyMediaAt,
   readLazyMedia,
   registerLazyMediaProtocol,
 } from './lazy-media'
+import { inlineLazyMediaInHtml } from './lazy-media-inline'
 import {
   commitDocPasswordSave,
   currentDocPasswordIntentRevision,
@@ -155,6 +161,7 @@ import {
   snapshotDocPassword,
 } from './docx-encryption'
 import { isExternallyModified, type DiskFileState } from './external-change'
+import { printScaleOption, validPrintDim, validPrintScale } from './print-args'
 import { initDocsAutoUpdater } from './updater'
 import { registerZoteroIpc, teardownZoteroIpc } from './zotero-ipc'
 
@@ -2220,6 +2227,21 @@ export function setDocsShellWindow(win: BrowserWindow | null): void {
   docsShellWindow = win
 }
 
+/** the window hosting a tab's WebContentsView when BrowserWindow.fromWebContents
+ *  cannot tell (detached "Open in New Window" editors) */
+let hostWindowHook: ((wc: WebContents) => BrowserWindow | undefined) | null = null
+export function setDocsHostWindowHook(
+  fn: ((wc: WebContents) => BrowserWindow | undefined) | null,
+): void {
+  hostWindowHook = fn
+}
+
+function hostWindowFor(wc: WebContents | null | undefined): BrowserWindow | undefined {
+  const own = wc && (hostWindowHook?.(wc) ?? BrowserWindow.fromWebContents(wc))
+  if (own && !own.isDestroyed()) return own
+  return docsShellWindow && !docsShellWindow.isDestroyed() ? docsShellWindow : undefined
+}
+
 /** injected by the shell in tab mode: resolves the webContents of the currently active docs tab,
  * used for menu-command forwarding where there is no IpcMainInvokeEvent to key off of. */
 let activeDocsResolver: (() => WebContents | null) | null = null
@@ -2232,9 +2254,10 @@ function activeDocsWebContents(): WebContents | null {
   return BrowserWindow.getFocusedWindow()?.webContents ?? mainWindow?.webContents ?? null
 }
 
-/** dialog parent for the calling tab (standalone mode falls back to its own BrowserWindow) */
+/** dialog parent for the calling tab: the sender's own window when it has one
+ *  (standalone mode, detached "Open in New Window" editors), else the shell window */
 function dialogParent(event: IpcMainInvokeEvent): BrowserWindow | undefined {
-  return docsShellWindow ?? BrowserWindow.fromWebContents(event.sender) ?? undefined
+  return hostWindowFor(event.sender)
 }
 
 async function openDialog(event: IpcMainInvokeEvent, options: OpenDialogOptions) {
@@ -2352,6 +2375,7 @@ export function docsFileRenamed(wc: WebContents, oldPath: string, newPath: strin
   // an encrypted document's password must follow the path, or the next save
   // finds no password under the new name and silently writes plaintext
   renameDocPassword(wc.id, oldPath, newPath)
+  moveLazyMediaSource(oldPath, newPath)
   wc.send('docs:renamed', { oldPath, newPath })
 }
 
@@ -2654,12 +2678,11 @@ async function maybeRecoverDocBytes(
   return { bytes: original, recovered: false }
 }
 
-// Word's own .docx ceiling; past ~1 GB the IPC reply serializer doubles its buffer beyond the allocator's map limit and crashes the main process
+// Word's own .docx ceiling
 const MAX_OPEN_BYTES = 512 * 1024 * 1024
 
 async function showOpenError(wcId: number, detail: string): Promise<void> {
-  const wc = webContents.fromId(wcId)
-  const parent = docsShellWindow ?? (wc && BrowserWindow.fromWebContents(wc)) ?? mainWindow
+  const parent = hostWindowFor(webContents.fromId(wcId)) ?? mainWindow
   const options = { type: 'error' as const, message: tm('dlgOpenDoc'), detail }
   if (parent && !parent.isDestroyed()) await dialog.showMessageBox(parent, options)
   else await dialog.showMessageBox(options)
@@ -2720,7 +2743,7 @@ async function loadDocx(
   return {
     path: filePath,
     name: basename(filePath),
-    data: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+    dataUrl: handOffBytes(bytes),
     hash,
     encrypted,
     recovered: recovered || undefined,
@@ -2948,6 +2971,8 @@ export function registerAiIpc(): void {
     return listCodexModels(typeof cliPath === 'string' ? cliPath : undefined)
   })
 
+  ipcMain.handle('ai:custom-models', (_event, input: unknown) => listCustomModelsForIpc(input))
+
   ipcMain.handle('ai:stream', async (event, request: AiStreamRequest) => {
     const { requestId, settings, system, messages } = request
     const tools = request.tools ?? []
@@ -3051,8 +3076,9 @@ export function registerAiIpc(): void {
 
   // media understanding (pictures in the document, attachments, local files): BYOK media
   // provider when one is configured, otherwise the Genspark CLI behind its login gate.
+  // docs-prefixed: slides registers its own ai:analyze-media in the same shell process.
   ipcMain.handle(
-    'ai:analyze-media',
+    'docs:analyze-media',
     async (_event, op: { mediaUrls: string[]; requirements: string }) => {
       const mediaUrls = (op.mediaUrls ?? []).map(String).filter(Boolean)
       // a picture opened lazily from a large docx is only addressable by its main-process
@@ -3060,9 +3086,7 @@ export function registerAiIpc(): void {
       const resolved: string[] = []
       for (const url of mediaUrls) {
         const lazy = await readLazyMedia(url).catch(() => null)
-        resolved.push(
-          lazy ? `data:${lazy.mime};base64,${lazy.body.toString('base64')}` : url,
-        )
+        resolved.push(lazy ? `data:${lazy.mime};base64,${lazy.body.toString('base64')}` : url)
       }
       return analyzeMediaTool(SETTINGS_PATH(), {
         mediaUrls: resolved,
@@ -3082,7 +3106,7 @@ export function registerAiIpc(): void {
         // fetchRemoteImage adds CDN-friendly headers and transient-error retries.
         const resp = await fetchRemoteImage(String(url))
         if (!resp || !resp.ok) return null
-        const buf = Buffer.from(await resp.arrayBuffer())
+        const buf = Buffer.from(await readBodyCapped(resp, MAX_REMOTE_IMAGE_BYTES))
         const ct = resp.headers.get('content-type') ?? ''
         const mime = ct.includes('png')
           ? 'image/png'
@@ -3170,15 +3194,19 @@ function getProjectStore(): ProjectStore {
  * Fired when a save lands on a new path (save-as / first silent save). The shell
  * uses it to sync the tab title/path, record recents and apply a pending project —
  * same contract as the sheets/slides opened hooks. Never called standalone.
+ * Returns the final path when the shell filed the new file into a Home folder.
  */
-let fileSavedHook: ((wc: WebContents, filePath: string) => void) | null = null
+let fileSavedHook: ((wc: WebContents, filePath: string) => string | void) | null = null
 
-export function setDocsFileSavedHook(hook: (wc: WebContents, filePath: string) => void): void {
+export function setDocsFileSavedHook(
+  hook: (wc: WebContents, filePath: string) => string | void,
+): void {
   fileSavedHook = hook
 }
 
-function notifyFileSaved(wc: WebContents, filePath: string): void {
-  if (fileSavedHook) fileSavedHook(wc, filePath)
+function notifyFileSaved(wc: WebContents, filePath: string): string {
+  const moved = fileSavedHook ? fileSavedHook(wc, filePath) : undefined
+  return typeof moved === 'string' && moved ? moved : filePath
 }
 
 /**
@@ -3208,6 +3236,14 @@ export function setSessionPathResolver(
 }
 
 /** After a file is renamed/moved on disk, sync project-store (fileMap/chatIdByPath re-key accordingly; history follows the file). */
+export function projectFilePaths(): string[] {
+  try {
+    return getProjectStore().knownFilePaths()
+  } catch {
+    return []
+  }
+}
+
 export function projectFileRenamed(oldPath: string, newPath: string): void {
   try {
     getProjectStore().fileRenamed(oldPath, newPath)
@@ -3271,11 +3307,9 @@ export function registerProjectIpc(): void {
       if (typeof args.text !== 'string' || args.text.length > 200_000) {
         throw new Error('Invalid chat text: must be a string up to 200000 chars')
       }
-      if (args.tools && (!Array.isArray(args.tools) || args.tools.length > 50)) {
-        throw new Error('Invalid chat tools: must be an array up to 50 entries')
-      }
-      if (args.attachments && (!Array.isArray(args.attachments) || args.attachments.length > 20)) {
-        throw new Error('Invalid chat attachments: must be an array up to 20 entries')
+      if (args.tools && !Array.isArray(args.tools)) throw new Error('Invalid chat tools')
+      if (args.attachments && !Array.isArray(args.attachments)) {
+        throw new Error('Invalid chat attachments')
       }
       const store = getProjectStore()
       const msg: Parameters<ProjectStore['appendChatMessage']>[2] = {
@@ -3343,15 +3377,7 @@ const reissuedDoc = (
   encrypted: boolean,
   hashes: Set<string>,
   plain: Buffer,
-): { data?: ArrayBuffer } =>
-  encrypted && hashes.size > 0
-    ? {
-        data: plain.buffer.slice(
-          plain.byteOffset,
-          plain.byteOffset + plain.byteLength,
-        ) as ArrayBuffer,
-      }
-    : {}
+): { dataUrl?: string } => (encrypted && hashes.size > 0 ? { dataUrl: handOffBytes(plain) } : {})
 
 /** document/attachment/window IPC (everything except the AI proxy above) */
 export function registerDocsIpc(): void {
@@ -3736,10 +3762,12 @@ export function registerDocsIpc(): void {
           result.filePath,
         )
         pushRecent(result.filePath)
-        notifyFileSaved(event.sender, result.filePath)
+        // the renderer has no path yet to match a rename notification against,
+        // so the reply must carry the path it may save to next
+        const savedPath = notifyFileSaved(event.sender, result.filePath)
         return {
           ok: true,
-          path: result.filePath,
+          path: savedPath,
           passwordIntentPending,
           ...reissuedDoc(!!passwordState.password, hashes, plain),
         }
@@ -3779,10 +3807,10 @@ export function registerDocsIpc(): void {
       }
       const passwordIntentPending = commitDocPasswordSave(event.sender.id, passwordState, filePath)
       pushRecent(filePath)
-      notifyFileSaved(event.sender, filePath)
+      const savedPath = notifyFileSaved(event.sender, filePath)
       return {
         ok: true,
-        path: filePath,
+        path: savedPath,
         passwordIntentPending,
         ...reissuedDoc(!!passwordState.password, hashes, plain),
       }
@@ -4007,9 +4035,12 @@ export function registerDocsIpc(): void {
   )
 
   // renderer print scale (inverse of the preview's print zoom, see print-zoom.ts)
-  const pdfScale = (scale?: number) => (scale && scale > 0 && scale !== 1 ? { scale } : {})
+  // Infinity passes a `> 0` check, so require finiteness before handing it to Chromium.
+  const pdfScale = (scale?: number) => printScaleOption(scale)
   const printScale = (scale?: number) =>
-    scale && scale > 0 && scale !== 1 ? { scaleFactor: Math.round(scale * 100) } : {}
+    typeof scale === 'number' && Number.isFinite(scale) && scale > 0 && scale !== 1
+      ? { scaleFactor: Math.round(scale * 100) }
+      : {}
 
   ipcMain.handle('docs:print', async (event, scale?: number) => {
     // print the calling tab's own content; zero margins — the docx page padding provides them.
@@ -4158,7 +4189,7 @@ export function registerDocsIpc(): void {
         allowPdfWrite(event.sender.id, filePath)
       }
       try {
-        writeFileSync(filePath, html, 'utf8')
+        writeFileSync(filePath, await inlineLazyMediaInHtml(html, readLazyMedia), 'utf8')
         openGeneratedFile(filePath)
         return { ok: true, path: filePath }
       } catch (err) {
@@ -4171,6 +4202,15 @@ export function registerDocsIpc(): void {
   ipcMain.handle(
     'docs:print-pdf-buffer',
     async (event, pageWidthTwips: number, pageHeightTwips: number, scale?: number) => {
+      // Renderer-supplied page geometry reaches Chromium printToPDF verbatim:
+      // reject non-finite/out-of-range sizes (0.5in..50in) and scales (0.1..5).
+      if (
+        !validPrintDim(pageWidthTwips) ||
+        !validPrintDim(pageHeightTwips) ||
+        !validPrintScale(scale)
+      ) {
+        return { ok: false, error: 'invalid page size or scale' }
+      }
       try {
         const data = await event.sender.printToPDF({
           printBackground: true,

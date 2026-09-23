@@ -104,6 +104,10 @@ outline entry and the palette), `deck_build` and `deck_replace`
 command line's staged flow, so a deck started from either side can be finished
 from the other.
 
+Behind a reverse proxy, set `GENOFFICE_TRUST_PROXY_HEADERS=1` so the download
+URLs the server hands out use the forwarded host and scheme; by default the
+`X-Forwarded-*` headers are ignored.
+
 `genoffice mcp --http <port> [--host <addr>] [--token <secret>]` serves the
 same tools over Streamable HTTP for clients on other machines (`src/mcp/http.ts`).
 Files travel with the calls: `PUT /files/<name>` uploads one and returns a URL,
@@ -160,9 +164,13 @@ Independently of the PATH, every launch of the packaged app writes the launcher 
 
 ## Cloud commands
 
-`search`, `image` and `media` reuse the editors' provider routing: Genspark
-when signed in (`~/.genoffice/auth.json`) and cloud tools are on, otherwise the
-Serper / Tavily or BYOK image / media provider chosen in the app's AI settings
+`search`, `image` and `media` reuse the editors' provider routing. Search uses
+the selected Serper / Tavily provider when its key is configured, or Parallel
+with an optional key (a blank saved key uses its free, rate-limited Search MCP);
+otherwise Genspark is the default when signed in (`~/.genoffice/auth.json`)
+and cloud tools are on, with free-source fallbacks when unavailable. Parallel
+and Tavily provide web search only. Image generation and media analysis use
+the corresponding provider chosen in the app's AI settings
 (`GenOffice/ai-settings.json` in the platform config directory, override with
 `GENOFFICE_AI_SETTINGS`). `HTTPS_PROXY` / `HTTP_PROXY` / `ALL_PROXY` are honoured.
 Search results, image bytes and analysis text come back in the JSON `detail`;

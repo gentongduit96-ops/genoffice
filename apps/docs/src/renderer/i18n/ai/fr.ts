@@ -57,6 +57,7 @@ export const fr = {
   aiSumInsertFootnote: 'Note de bas de page insérée',
   aiSumInsertEndnote: 'Note de fin insérée',
   aiSumDeleteNote: 'Note supprimée',
+  aiSumEditNote: 'Note modifiée',
   aiSumReadNotes: 'Notes lues',
   aiSumAddComment: 'Commentaire ajouté',
   aiSumDeleteComment: 'Commentaire supprimé',
@@ -168,6 +169,8 @@ export const fr = {
   aiCmdNone: "Aucun bloc correspondant ; le document n'a pas été modifié.",
   aiCmdNoneSkipped:
     "Aucun bloc modifiable ; le document n'a pas été modifié ({count} blocs protégés ignorés — les tableaux/images ne peuvent pas être modifiés par des commandes de style).",
+  aiCmdNoneUnchanged:
+    "{count} bloc(s) correspondant(s) sont restés inchangés ; le document n'a pas été modifié.",
   aiCmdTextStyle: 'Style de texte mis à jour sur {count} bloc(s)',
   aiCmdMatchedStyle: 'Style appliqué à {count} occurrence(s) dans {blocks} bloc(s)',
   aiCmdParaStyle: 'Format de paragraphe mis à jour sur {count} bloc(s)',
