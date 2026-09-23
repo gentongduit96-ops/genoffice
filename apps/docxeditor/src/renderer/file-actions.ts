@@ -348,19 +348,35 @@ export async function loadFile(
 
     if (isManusProjectFile(result.name || result.path)) {
       try {
-        const unpacked = await unpackManusProject(result.data)
-        docxRawBytes = unpacked.docxData
-        pdfInitialData = {
-          buffer: unpacked.pdfData,
-          name: unpacked.metadata.pdf?.originalName || 'manuskrip.pdf',
-          meta: unpacked.metadata.pdf,
+        if (result.data && result.data.byteLength >= 20) {
+          const unpacked = await unpackManusProject(result.data)
+          docxRawBytes = unpacked.docxData
+          pdfInitialData = {
+            buffer: unpacked.pdfData,
+            name: unpacked.metadata.pdf?.originalName || 'manuskrip.pdf',
+            meta: unpacked.metadata.pdf,
+          }
         }
       } catch (err) {
-        console.error('Failed to unpack manus project:', err)
+        console.warn('Failed to unpack manus project, will fall back to default blank document:', err)
       }
     }
 
-    const parsed = await parseDocx(new Uint8Array(docxRawBytes))
+    // Safety fallback: if docxRawBytes is empty (0 bytes) or corrupted/short, load a valid blank docx
+    if (!docxRawBytes || docxRawBytes.byteLength < 50) {
+      const blankBytes = await buildBlankDocx({ eastAsiaFont: defaultEastAsiaFontFor(getLang()) })
+      docxRawBytes = blankBytes.buffer as ArrayBuffer
+    }
+
+    let parsed: ParsedDocFull
+    try {
+      parsed = await parseDocx(new Uint8Array(docxRawBytes))
+    } catch (parseErr) {
+      console.warn('Docx parse error, gracefully loading blank document fallback:', parseErr)
+      const blankBytes = await buildBlankDocx({ eastAsiaFont: defaultEastAsiaFontFor(getLang()) })
+      parsed = await parseDocx(blankBytes)
+      showToast(t('appOpenFailed', { error: String(parseErr) }), 'error')
+    }
     if (generation !== openGeneration) return 'superseded'
     // before setContent: blockAttrs/marks bake fontTable-driven factors and chains into the DOM
     const adopted = await adoptEmbeddedFonts(parsed.embeddedFonts)

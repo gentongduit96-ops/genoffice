@@ -104,6 +104,11 @@ export async function packManusProject(params: {
 }
 
 export async function unpackManusProject(data: ArrayBuffer | Uint8Array): Promise<UnpackedManusProject> {
+  const byteLen = data instanceof Uint8Array ? data.byteLength : data?.byteLength ?? 0
+  if (byteLen < 20) {
+    throw new Error('File proyek .manus kosong atau tidak valid (0 bytes).')
+  }
+
   const zip = await JSZip.loadAsync(data)
 
   const manifestFile = zip.file('project.json')
