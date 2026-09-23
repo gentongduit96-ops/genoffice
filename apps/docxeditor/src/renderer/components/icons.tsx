@@ -1851,3 +1851,73 @@ export function GensparkMark({ size = 30 }: { size?: number }) {
   )
 }
 
+export function IconKeyboard(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <rect x="1.5" y="4.25" width="13" height="7.5" rx="1.2" />
+      <path d="M 4 6.5 h 0.01 M 6.5 6.5 h 0.01 M 9 6.5 h 0.01 M 11.5 6.5 h 0.01 M 4.5 9.5 h 7" strokeWidth="1.6" />
+    </Svg>
+  )
+}
+
+export function IconStagingAudit(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M 3.5 2.5 h 9 a 1 1 0 0 1 1 1 v 9.5 a 1 1 0 0 1 -1 1 h -9 a 1 1 0 0 1 -1 -1 v -9.5 a 1 1 0 0 1 1 -1 Z" />
+      <path d="M 5.5 5.5 h 5 M 5.5 8 h 5 M 5.5 10.5 h 3" />
+      <polyline points="9.5 11 11 12.5 13.5 9" />
+    </Svg>
+  )
+}
+
+export function IconDocumentText(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 2.5h6l3 3v8a1 1 0 01-1 1h-8a1 1 0 01-1-1v-10a1 1 0 011-1z" />
+      <path d="M9.5 2.5v3h3M5.5 7.5h5M5.5 10h5" />
+    </Svg>
+  )
+}
+
+export function IconFormat(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 3.5h11M2.5 7.5h8M2.5 11.5h11" />
+    </Svg>
+  )
+}
+
+export function IconPlus(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M8 3.5v9M3.5 8h9" />
+    </Svg>
+  )
+}
+
+export function IconChevronUp(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 10L8 5.5L12.5 10" />
+    </Svg>
+  )
+}
+
+export function IconChevronDown(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M3.5 6L8 10.5L12.5 6" />
+    </Svg>
+  )
+}
+
+export function IconList(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 4h11M2.5 8h11M2.5 12h11" />
+    </Svg>
+  )
+}
+
+
+

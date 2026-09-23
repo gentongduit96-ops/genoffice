@@ -459,4 +459,7 @@ export interface DesktopApi {
       y?: number
     }) => void,
   ) => () => void
+  /** Trigger native Windows On-Screen Keyboard (osk.exe) */
+  openOsk?: () => Promise<void>
 }
+

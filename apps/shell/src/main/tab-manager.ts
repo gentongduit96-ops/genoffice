@@ -30,6 +30,11 @@ import {
   requestHtmlClose,
 } from '../../../html/src/main/html-main'
 import {
+  createIdmlView,
+  idmlIsDirty,
+  requestIdmlClose,
+} from '../../../idml/src/main/idml-main'
+import {
   createPdfView,
   clearPdfDirty,
   pdfIsDirty,
@@ -405,6 +410,23 @@ export class TabManager {
     return id
   }
 
+  openIdmlTab(openPath?: string): string {
+    const view = createIdmlView(openPath)
+    const id = `t${this.nextId++}`
+    this.shellWindow.contentView.addChildView(view)
+    view.setVisible(false)
+    this.trackHtmlFullScreen(id, view)
+    this.tabs.push({
+      id,
+      kind: 'idml',
+      view,
+      title: openPath ? basename(openPath) : this.untitled('idml', 'IDML Studio'),
+      filePath: openPath,
+    })
+    this.activateTab(id)
+    return id
+  }
+
   /** Present → New tab: a chrome-free html tab showing the owner tab's live preview */
   openHtmlPresentTab(owner: WebContents, title: string): string {
     const view = createHtmlPresentView(owner, title)
@@ -526,6 +548,13 @@ export class TabManager {
       .map((t) => ({ id: t.id, webContents: t.view!.webContents }))
   }
 
+  /** idml tabs whose renderer reports unsaved edits (shell-close guard) */
+  dirtyIdmlTabs(): Array<{ id: string; webContents: WebContents }> {
+    return this.tabs
+      .filter((t) => t.kind === 'idml' && t.view && idmlIsDirty(t.view.webContents.id))
+      .map((t) => ({ id: t.id, webContents: t.view!.webContents }))
+  }
+
   /** slides tabs whose main-process session has unsaved edits (shell-close guard) */
   dirtySlidesTabs(): Array<{ id: string; webContents: WebContents }> {
     return this.tabs
@@ -573,9 +602,11 @@ export class TabManager {
             ? requestMarkdownClose
             : tab.kind === 'html' && htmlIsDirty(tab.view.webContents.id)
               ? requestHtmlClose
-              : tab.kind === 'slides' && slidesIsDirty(tab.view.webContents.id)
-                ? requestSlidesClose
-                : null)
+              : tab.kind === 'idml' && idmlIsDirty(tab.view.webContents.id)
+                ? requestIdmlClose
+                : tab.kind === 'slides' && slidesIsDirty(tab.view.webContents.id)
+                  ? requestSlidesClose
+                  : null)
     // docs dirty state lives in the renderer and needs an async query; skip the guard when clean (avoids a flash activation)
     if (!closeGuard && tab.kind === 'docs' && tab.view) {
       this.closingIds.add(id)
@@ -699,6 +730,10 @@ export class TabManager {
 
   findHtmlTabByPath(path?: string): string | undefined {
     return this.findTabOfKindByPath('html', path)
+  }
+
+  findIdmlTabByPath(path?: string): string | undefined {
+    return this.findTabOfKindByPath('idml', path)
   }
 
   /** the active tab's html view, if the active tab is html (html menu target) */

@@ -1,0 +1,301 @@
+@import '@genoffice/ui/tokens.css';
+
+:root {
+  --accent: #d6285d;
+  --accent-soft: #fdeef3;
+  --accent-dark: #b81e4c;
+  --indesign-pink: var(--accent);
+
+  --idml-canvas-bg: #e2e1df;
+  --idml-pasteboard: #d6d4d1;
+  --idml-spread-shadow: var(--shadow-fluent-16, 0 8px 24px rgba(0, 0, 0, 0.12));
+  --idml-guide-margin: #5080dc;
+  --idml-guide-bleed: #e03c3c;
+  --idml-guide-column: #8050dc;
+
+  --idml-tool-bg: var(--colorNeutralBackground1);
+  --idml-panel-bg: var(--colorNeutralBackground1);
+  --idml-border: var(--colorNeutralStroke2);
+  --idml-text-primary: var(--colorNeutralForeground1);
+  --idml-text-secondary: var(--colorNeutralForeground3);
+}
+
+[data-theme='dark'] {
+  --accent: #ff6b9d;
+  --accent-soft: #381824;
+  --accent-dark: #e03c7a;
+
+  --idml-canvas-bg: #1c1c1c;
+  --idml-pasteboard: #151515;
+  --idml-spread-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  font-family: var(--font-family-base, 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif);
+  font-size: 13px;
+  color: var(--idml-text-primary);
+  background-color: var(--colorNeutralBackground1);
+  overflow: hidden;
+  height: 100vh;
+  width: 100vw;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* InDesign Workspace Layout */
+.idml-workspace {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.idml-controlbar {
+  height: 38px;
+  background-color: var(--colorNeutralBackground1);
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  gap: 12px;
+  z-index: 10;
+}
+
+.idml-control-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.idml-control-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--colorNeutralStroke2);
+}
+
+.idml-body {
+  flex: 1;
+  display: flex;
+  position: relative;
+  overflow: hidden;
+}
+
+.idml-toolbox {
+  width: 42px;
+  background-color: var(--colorNeutralBackground1);
+  border-right: 1px solid var(--colorNeutralStroke2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  gap: 4px;
+  z-index: 5;
+}
+
+.idml-tool-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-4, 4px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--colorNeutralForeground1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.idml-tool-btn:hover {
+  background-color: var(--colorNeutralBackground1Hover);
+  border-color: var(--colorNeutralStroke2);
+}
+
+.idml-tool-btn.active {
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.idml-canvas-container {
+  flex: 1;
+  background-color: var(--idml-canvas-bg);
+  position: relative;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.idml-spread-wrapper {
+  background-color: #ffffff;
+  box-shadow: var(--idml-spread-shadow);
+  position: relative;
+  transition: transform 150ms cubic-bezier(0.1, 0.9, 0.2, 1);
+}
+
+.idml-page-item {
+  position: absolute;
+  border: 1px solid transparent;
+  box-sizing: border-box;
+}
+
+.idml-page-item.selected {
+  border: 1px dashed var(--accent);
+}
+
+.idml-page-item.text-frame {
+  overflow: hidden;
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.idml-page-item.graphic-frame {
+  background-color: #f7f7f7;
+  border: 1px solid #d0d0d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.idml-overset-badge {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  background-color: #d13438;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: bold;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  z-index: 12;
+}
+
+.idml-dock {
+  width: 300px;
+  background-color: var(--colorNeutralBackground1);
+  border-left: 1px solid var(--colorNeutralStroke2);
+  display: flex;
+  flex-direction: column;
+}
+
+.idml-dock-header {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--colorNeutralStroke2);
+  padding: 0 6px;
+  gap: 2px;
+}
+
+.idml-tab-btn {
+  flex: 1;
+  padding: 6px 8px;
+  border-radius: var(--radius-4, 4px);
+  border: none;
+  background: transparent;
+  color: var(--colorNeutralForeground3);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 120ms ease;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.idml-tab-btn:hover {
+  background-color: var(--colorNeutralBackground1Hover);
+  color: var(--colorNeutralForeground1);
+}
+
+.idml-tab-btn.active {
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  border-bottom: 2px solid var(--accent);
+}
+
+.idml-dock-content {
+  flex: 1;
+  padding: 14px;
+  overflow-y: auto;
+}
+
+.idml-statusbar {
+  height: 28px;
+  background-color: var(--colorNeutralBackground2);
+  border-top: 1px solid var(--colorNeutralStroke2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  font-size: 11px;
+  color: var(--colorNeutralForeground3);
+}
+
+.idml-status-btn {
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--colorNeutralStroke1);
+  background-color: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.idml-status-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.idml-preflight-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.idml-preflight-badge.ok {
+  background-color: #eaf7ef;
+  color: #107c41;
+}
+
+.idml-preflight-badge.error {
+  background-color: #fdf3f3;
+  color: #d13438;
+}
+
+.idml-select-input {
+  height: 26px;
+  padding: 0 8px;
+  border-radius: var(--radius-4, 4px);
+  border: 1px solid var(--colorNeutralStroke1);
+  background-color: var(--colorNeutralBackground1);
+  color: var(--colorNeutralForeground1);
+  font-size: 12px;
+  outline: none;
+}
+
+.idml-select-input:focus {
+  border-color: var(--accent);
+}

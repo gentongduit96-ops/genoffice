@@ -26,6 +26,33 @@ export interface ManusProjectMetadata {
     syncMode?: string
     [key: string]: unknown
   }
+  stagingState?: {
+    isOpen: boolean
+    activeLineId: string | null
+    pageNo: number
+    lines: Array<{
+      id: string
+      lineNumber: number
+      rawText: string
+      correctedText: string
+      bbox?: [number, number, number, number]
+      confidenceScore: number
+      status: 'unverified' | 'verified' | 'flagged' | 'edited'
+      blockType?: string
+      columnIndex?: number
+      candidates?: string[]
+      auditNotes?: string
+    }>
+    history?: Array<{
+      id: string
+      timestamp: number
+      pageNo: number
+      title: string
+      totalBlocks: number
+      verifiedCount: number
+      lines: any[]
+    }>
+  }
 }
 
 export interface UnpackedManusProject {

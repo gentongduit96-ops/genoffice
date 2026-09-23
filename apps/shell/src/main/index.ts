@@ -242,6 +242,9 @@ import {
   setHtmlPresentHooks,
   setHtmlProvisionalTitleHook,
 } from '../../../html/src/main/html-main'
+import {
+  configureIdmlRuntime,
+} from '../../../idml/src/main/idml-main'
 import type {
   AccountLoginEvent,
   AutoSaveDefault,
@@ -356,6 +359,9 @@ const HTML_OUT = app.isPackaged
 const DOCXEDITOR_OUT = app.isPackaged
   ? join(process.resourcesPath, 'modules', 'docxeditor')
   : join(APPS_ROOT, 'docxeditor', 'out')
+const IDML_OUT = app.isPackaged
+  ? join(process.resourcesPath, 'modules', 'idml')
+  : join(APPS_ROOT, 'idml', 'out')
 const SIDECAR_BIN = app.isPackaged
   ? join(process.resourcesPath, 'native', SIDECAR_EXE)
   : join(APPS_ROOT, 'sheets', 'native', 'xlsx-engine', 'target', 'release', SIDECAR_EXE)
@@ -364,6 +370,11 @@ configureDocsRuntime({
   preloadPath: join(DOCS_OUT, 'preload', 'index.js'),
   rendererUrl: process.env.DOCS_RENDERER_URL,
   rendererFile: join(DOCS_OUT, 'renderer', 'index.html'),
+})
+configureIdmlRuntime({
+  preloadPath: join(IDML_OUT, 'preload', 'index.js'),
+  rendererUrl: process.env.IDML_RENDERER_URL,
+  rendererFile: join(IDML_OUT, 'renderer', 'index.html'),
 })
 configureManuscriberRuntime({
   preloadPath: join(DOCXEDITOR_OUT, 'preload', 'index.js'),
@@ -640,6 +651,7 @@ const tMain = createI18n({
     untitledMarkdown: '未命名 Markdown',
     untitledHtml: '未命名 HTML',
     untitledPdf: '未命名 PDF',
+    untitledIdml: '未命名 IDML 文档',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -722,6 +734,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Untitled Markdown',
     untitledHtml: 'Untitled HTML',
     untitledPdf: 'Untitled PDF',
+    untitledIdml: 'Untitled IDML Document',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -812,6 +825,7 @@ const tMain = createI18n({
     untitledMarkdown: '無題の Markdown',
     untitledHtml: '無題の HTML',
     untitledPdf: '無題の PDF',
+    untitledIdml: '無題の IDML ドキュメント',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -902,6 +916,7 @@ const tMain = createI18n({
     untitledMarkdown: '제목 없는 Markdown',
     untitledHtml: '제목 없는 HTML',
     untitledPdf: '제목 없는 PDF',
+    untitledIdml: '제목 없는 IDML 문서',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -991,6 +1006,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown sans titre',
     untitledHtml: 'HTML sans titre',
     untitledPdf: 'PDF sans titre',
+    untitledIdml: 'Document IDML sans titre',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1082,6 +1098,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Unbenanntes Markdown',
     untitledHtml: 'Unbenanntes HTML',
     untitledPdf: 'Unbenanntes PDF',
+    untitledIdml: 'Unbenanntes IDML-Dokument',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1173,6 +1190,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown sin título',
     untitledHtml: 'HTML sin título',
     untitledPdf: 'PDF sin título',
+    untitledIdml: 'Documento IDML sin título',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1264,6 +1282,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown ไม่มีชื่อ',
     untitledHtml: 'HTML ไม่มีชื่อ',
     untitledPdf: 'PDF ไม่มีชื่อ',
+    untitledIdml: 'เอกสาร IDML ไม่มีชื่อ',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1351,6 +1370,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown tanpa judul',
     untitledHtml: 'HTML tanpa judul',
     untitledPdf: 'PDF tanpa judul',
+    untitledIdml: 'Dokumen IDML tanpa judul',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1442,6 +1462,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown без названия',
     untitledHtml: 'HTML без названия',
     untitledPdf: 'PDF без названия',
+    untitledIdml: 'Документ IDML без названия',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1533,6 +1554,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown بدون عنوان',
     untitledHtml: 'HTML بدون عنوان',
     untitledPdf: 'PDF بدون عنوان',
+    untitledIdml: 'مستند IDML بدون عنوان',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1620,6 +1642,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown sem título',
     untitledHtml: 'HTML sem título',
     untitledPdf: 'PDF sem título',
+    untitledIdml: 'Documento IDML sem título',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1711,6 +1734,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown senza titolo',
     untitledHtml: 'HTML senza titolo',
     untitledPdf: 'PDF senza titolo',
+    untitledIdml: 'Documento IDML senza titolo',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1802,6 +1826,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown bez tytułu',
     untitledHtml: 'HTML bez tytułu',
     untitledPdf: 'PDF bez tytułu',
+    untitledIdml: 'Dokument IDML bez tytułu',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1893,6 +1918,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown bez názvu',
     untitledHtml: 'HTML bez názvu',
     untitledPdf: 'PDF bez názvu',
+    untitledIdml: 'Dokument IDML bez názvu',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -1982,6 +2008,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Naamloos Markdown',
     untitledHtml: 'Naamloos HTML',
     untitledPdf: 'Naamloze PDF',
+    untitledIdml: 'Naamloos IDML-document',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -2073,6 +2100,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown tanpa tajuk',
     untitledHtml: 'HTML tanpa tajuk',
     untitledPdf: 'PDF tanpa tajuk',
+    untitledIdml: 'Dokumen IDML tanpa tajuk',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -2163,6 +2191,7 @@ const tMain = createI18n({
     untitledMarkdown: 'Markdown ללא שם',
     untitledHtml: 'HTML ללא שם',
     untitledPdf: 'PDF ללא שם',
+    untitledIdml: 'מסמך IDML ללא שם',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -2251,6 +2280,7 @@ const tMain = createI18n({
     untitledMarkdown: 'अनाम Markdown',
     untitledHtml: 'अनाम HTML',
     untitledPdf: 'अनाम PDF',
+    untitledIdml: 'अनाम IDML दस्तावेज़',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -2342,6 +2372,7 @@ const tMain = createI18n({
     untitledMarkdown: '未命名 Markdown',
     untitledHtml: '未命名 HTML',
     untitledPdf: '未命名 PDF',
+    untitledIdml: '未命名 IDML 文件',
     menuNewSlide: 'AI Slides',
     menuNewMarkdown: 'AI Markdown',
     menuNewHtml: 'AI HTML',
@@ -2632,7 +2663,11 @@ function createShellWindow(): void {
               ? tm('untitledMarkdown')
               : kind === 'html'
                 ? tm('untitledHtml')
-                : tm('untitledSheet'),
+                : kind === 'pdf'
+                  ? tm('untitledPdf')
+                  : kind === 'idml'
+                    ? tm('untitledIdml')
+                    : tm('untitledSheet'),
   )
   tabManager = manager
 
@@ -2817,6 +2852,7 @@ const PPTX_RE = /\.pptx$/i
 const PDF_RE = /\.pdf$/i
 const MD_RE = /\.(md|markdown)$/i
 const HTML_RE = /\.html?$/i
+const IDML_RE = /\.idml$/i
 
 /** document formats we recognize but don't open — surfaced as a dialog, not silently dropped */
 const UNSUPPORTED_DOC_RE = /\.(doc|rtf|odt|ppt|pps|odp|ods|xlsb|pages|key|numbers)$/i
@@ -2843,6 +2879,7 @@ const OPEN_DIALOG_EXTENSIONS = [
   'markdown',
   'html',
   'htm',
+  'idml',
 ]
 
 function supportedFileIn(argv: string[]): string | null {
@@ -2855,7 +2892,8 @@ function supportedFileIn(argv: string[]): string | null {
           PPTX_RE.test(arg) ||
           PDF_RE.test(arg) ||
           MD_RE.test(arg) ||
-          HTML_RE.test(arg)) &&
+          HTML_RE.test(arg) ||
+          IDML_RE.test(arg)) &&
         existsSync(arg),
     ) ?? null
   )
@@ -2985,6 +3023,13 @@ function routeDocumentPath(filePath: string): boolean {
     const existing = tabManager.findHtmlTabByPath(filePath)
     if (existing) tabManager.activateTab(existing)
     else tabManager.openHtmlTab(filePath)
+    return true
+  }
+  if (IDML_RE.test(filePath)) {
+    recordRecentFile(filePath)
+    const existing = tabManager.findIdmlTabByPath(filePath)
+    if (existing) tabManager.activateTab(existing)
+    else tabManager.openIdmlTab(filePath)
     return true
   }
   notifyUnsupportedFile(filePath)
@@ -3173,6 +3218,16 @@ function newHtmlTab(): void {
     bindPendingDir('html', tabManager?.openHtmlTab())
     recordStarPromptDocOpen()
     analytics.track('file_new', { kind: 'html' })
+  } catch (err) {
+    surfaceNewTabError(err)
+  }
+}
+
+function newIdmlTab(): void {
+  try {
+    bindPendingDir('idml', tabManager?.openIdmlTab())
+    recordStarPromptDocOpen()
+    analytics.track('file_new', { kind: 'idml' })
   } catch (err) {
     surfaceNewTabError(err)
   }
@@ -3369,6 +3424,11 @@ function registerHomeIpc(): void {
   ipcMain.handle(HOME_CHANNELS.newHtml, (_event, opts?: NewFileOpts) => {
     rememberPendingDir('html', opts)
     newHtmlTab()
+  })
+
+  ipcMain.handle(HOME_CHANNELS.newIdml, (_event, opts?: NewFileOpts) => {
+    rememberPendingDir('idml', opts)
+    newIdmlTab()
   })
 
   ipcMain.handle(HOME_CHANNELS.newPdf, (_event, opts?: NewFileOpts) => {
@@ -3852,6 +3912,7 @@ const TAB_MENU_ICON: Record<TabKind, keyof MenuIconSet> = {
   markdown: 'md',
   html: 'html',
   manuscriber: 'docx',
+  idml: 'html',
 }
 
 // tab views see neither DOM events nor a focus change when the user clicks the
@@ -4897,6 +4958,7 @@ app.whenReady().then(async () => {
     pdf: join(PDF_OUT, 'renderer'),
     markdown: join(MARKDOWN_OUT, 'renderer'),
     html: join(HTML_OUT, 'renderer'),
+    idml: join(IDML_OUT, 'renderer'),
     docxeditor: join(DOCXEDITOR_OUT, 'renderer'),
     manuscriber: join(DOCXEDITOR_OUT, 'renderer'),
   })
@@ -4918,8 +4980,11 @@ app.whenReady().then(async () => {
       const oldPid = Number(readFileSync(devPidFile(), 'utf-8').trim())
       if (Number.isFinite(oldPid) && oldPid > 0 && oldPid !== process.pid) {
         // pid-recycling guard: only kill if that pid is still an Electron process
-        const cmd = execSync(`ps -o command= -p ${oldPid}`).toString()
-        if (cmd.includes('Electron')) process.kill(oldPid, 'SIGKILL')
+        const cmd =
+          process.platform === 'win32'
+            ? execSync(`tasklist /FI "PID eq ${oldPid}"`).toString()
+            : execSync(`ps -o command= -p ${oldPid}`).toString()
+        if (cmd.includes('Electron') || cmd.includes('electron')) process.kill(oldPid, 'SIGKILL')
       }
     } catch {
       // no previous instance recorded / already gone (ps exits non-zero)

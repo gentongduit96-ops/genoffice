@@ -146,6 +146,7 @@ const api: DesktopApi = {
     ipcRenderer.invoke('manuscriber:save-project-as', defaultName, data, sourcePath ?? null),
   readPdfFile: (filePath: string) => ipcRenderer.invoke('manuscriber:read-pdf', filePath),
   consumePendingPdf: () => ipcRenderer.invoke('manuscriber:consume-pending-pdf'),
+  openOsk: () => ipcRenderer.invoke('manuscriber:open-osk'),
   fetchImage: (url: string) => ipcRenderer.invoke('ai:fetch-image', url),
   aiGenerateImage: (op: { prompt: string; aspectRatio?: string }) =>
     ipcRenderer.invoke('docs:ai-generate-image', op),

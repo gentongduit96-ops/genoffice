@@ -42,6 +42,9 @@ import {
 } from './editor/paste-options'
 import { PasteOptionsChip } from './components/PasteOptionsChip'
 import { PdfViewerPanel, type ManuscriberBridge } from './manuscriber/PdfViewerPanel'
+import { useManuscriberStagingStore, manuscriberStagingStore } from './manuscriber/ManuscriberStagingStore'
+import { ManuscriberStagingPanel } from './manuscriber/ManuscriberStagingPanel'
+import { commitStagingToDocx } from './manuscriber/editor-page-sync'
 import type { ManusProjectMetadata } from './manuscriber/project-io'
 import {
   BLANK_BULLET_NUM_ID,
@@ -4259,8 +4262,9 @@ export function App() {
   // close guard: the main process queries dirty state before closing a tab/window; choosing "Save" runs a full save and reports back
   useEffect(() => {
     const offCheck = window.desktop.onCloseCheck?.(() => {
+      const isStagingDirty = manuscriberStagingStore.hasUnsavedChanges()
       window.desktop.reportCloseCheck({
-        dirty: !!doc && (anyDirtyRef.current || dirtyRef.current),
+        dirty: (!!doc && (anyDirtyRef.current || dirtyRef.current)) || isStagingDirty,
         autoSave: autoSave && !!doc?.filePath,
         filePath: doc?.filePath ?? null,
       })
@@ -5190,6 +5194,8 @@ export function App() {
     .filter(Boolean)
     .join(' ')
 
+  const stagingStore = useManuscriberStagingStore()
+
   const docZoomClass = [
     'doc-zoom',
     showMarks ? 'show-marks' : '',
@@ -5329,7 +5335,19 @@ export function App() {
           </div>
         )}
         <div className="app-content">
-          <div className={workspaceClass}>
+          {stagingStore.isOpen ? (
+            <ManuscriberStagingPanel
+              onCommitToDocx={(lines) => {
+                if (editor) {
+                  commitStagingToDocx(editor, lines)
+                  manuscriberStagingStore.setIsOpen(false)
+                }
+              }}
+              onClose={() => manuscriberStagingStore.setIsOpen(false)}
+            />
+          ) : (
+            <div className={workspaceClass}>
+
             {doc && showFind && (
               <FindPanel
                 editor={editor}
@@ -5590,6 +5608,7 @@ export function App() {
               />
             )}
           </div>
+          )}
 
           <footer className="status-bar">
             <div className="status-left">

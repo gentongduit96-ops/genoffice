@@ -6539,14 +6539,18 @@ body.docs-crop-active
 }
 
 .ai-panel-header {
+  height: 38px;
+  min-height: 38px;
+  max-height: 38px;
+  box-sizing: border-box;
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px 10px 14px;
-  border-bottom: 1px solid var(--color-border-default);
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--border, var(--color-border-default));
   font-weight: 600;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-primary);
 }
 
@@ -11232,49 +11236,105 @@ tr > .page-gap-cut {
    Fluent UI 2: AI Preset Dropdowns & Prompt Manager
    ========================================================================== */
 
+/* ==========================================================================
+   Fluent UI 2: AI Preset Dropdowns & Prompt Manager
+   ========================================================================== */
+
 .layout-menu.ai-preset-menu {
+  width: 320px;
   min-width: 300px;
   max-width: 360px;
-  max-height: 420px;
+  max-height: 480px;
   padding: 6px;
   border-radius: 8px;
   background: var(--surface);
   border: 1px solid var(--border-strong);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28), 0 2px 6px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32), 0 2px 8px rgba(0, 0, 0, 0.16);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  overflow: hidden;
+  gap: 0;
 }
 
-.ai-preset-menu-header {
-  padding: 6px 10px 8px 10px;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.ai-preset-menu-list {
-  max-height: 280px;
+.ai-unified-menu-scroll {
+  flex: 1;
   overflow-y: auto;
-  padding: 4px 0;
+  padding-right: 2px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
-.ai-preset-menu-list::-webkit-scrollbar {
+.ai-unified-menu-scroll::-webkit-scrollbar {
   width: 5px;
 }
 
-.ai-preset-menu-list::-webkit-scrollbar-thumb {
-  background: var(--docs-scroll-thumb);
+.ai-unified-menu-scroll::-webkit-scrollbar-thumb {
+  background: var(--docs-scroll-thumb, rgba(255, 255, 255, 0.2));
   border-radius: 3px;
+}
+
+.ai-preset-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 4px;
+}
+
+.ai-preset-section + .ai-preset-section {
+  border-top: 1px solid var(--border);
+  padding-top: 6px;
+}
+
+.ai-preset-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px;
+}
+
+.ai-preset-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--accent, #0f6cbd);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ai-section-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ai-preset-section-manage {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--accent, #0f6cbd);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+  transition: all 0.12s ease;
+}
+
+.ai-preset-section-manage:hover {
+  background: var(--hover, rgba(255, 255, 255, 0.08));
+  color: var(--accent-hover, #115ea3);
+}
+
+.ai-preset-section-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .layout-menu.ai-preset-menu button.ai-preset-item-btn {
@@ -11282,61 +11342,75 @@ tr > .page-gap-cut {
   flex-direction: column;
   align-items: flex-start;
   text-align: left;
-  padding: 8px 10px;
-  border-radius: 5px;
-  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
   color: var(--text);
-  transition: background-color 0.12s ease;
+  transition: all 0.12s ease;
   width: 100%;
   box-sizing: border-box;
 }
 
 .layout-menu.ai-preset-menu button.ai-preset-item-btn:hover {
-  background: var(--hover);
+  background: var(--hover, rgba(255, 255, 255, 0.06));
+  border-color: var(--border, rgba(255, 255, 255, 0.1));
 }
 
 .ai-preset-item-title {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.3;
   color: var(--text);
 }
 
 .ai-preset-item-desc {
-  font-size: 11px;
-  line-height: 1.3;
-  color: var(--text-dim);
+  font-size: 10.5px;
+  line-height: 1.35;
+  color: var(--text-dim, rgba(255, 255, 255, 0.6));
   margin-top: 2px;
 }
 
-.ai-preset-menu-footer {
+.layout-menu.ai-preset-menu .ai-preset-menu-footer {
   border-top: 1px solid var(--border);
-  padding-top: 5px;
-  margin-top: 2px;
+  padding-top: 6px;
+  margin-top: 4px;
 }
 
 .layout-menu.ai-preset-menu button.ai-preset-manage-btn {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 7px 10px;
-  border-radius: 5px;
-  border: 1px dashed var(--border-strong);
-  background: var(--accent-soft);
-  color: var(--accent);
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  background: var(--colorBrandBackground, #0f6cbd);
+  color: #ffffff;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.12s ease;
+  box-sizing: border-box;
+}
+
+.layout-menu.ai-preset-menu button.ai-preset-manage-btn svg {
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.layout-menu.ai-preset-menu button.ai-preset-manage-btn span {
+  white-space: nowrap;
+  line-height: 1.2;
 }
 
 .layout-menu.ai-preset-menu button.ai-preset-manage-btn:hover {
-  background: var(--hover);
-  border-color: var(--accent);
+  background: var(--colorBrandBackgroundHover, #115ea3);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.28);
 }
 
 /* Prompt Manager Modal (Fluent 2 Dialog) */

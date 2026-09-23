@@ -3361,6 +3361,18 @@ export function registerManuscriberIpc(): void {
     }
     return null
   })
+
+  ipcMain.removeHandler('manuscriber:open-osk')
+  ipcMain.handle('manuscriber:open-osk', async () => {
+    if (process.platform === 'win32') {
+      try {
+        const { exec } = await import('child_process')
+        exec('cmd /c start osk.exe')
+      } catch (err) {
+        console.warn('Failed to launch Windows OSK:', err)
+      }
+    }
+  })
 }
 
 /** A4 at 96dpi, as the HTML app exports */

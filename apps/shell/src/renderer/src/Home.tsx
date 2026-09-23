@@ -71,6 +71,25 @@ const DRAG_EXPAND_DELAY_MS = 600
 const TREE_STATE_KEY = 'home.folderTree'
 
 function FileBadge({ ext, size }: { ext: string; size: number }) {
+  if (ext === 'idml') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect width="32" height="32" rx="7.5" fill="#d6285d" />
+        <text
+          x="16"
+          y="16.5"
+          textAnchor="middle"
+          dominantBaseline="central"
+          fill="#fff"
+          fontSize={14}
+          fontWeight="800"
+          fontFamily="system-ui, -apple-system, 'Segoe UI', sans-serif"
+        >
+          ID
+        </text>
+      </svg>
+    )
+  }
   if (ext === 'manuscriber' || ext === 'manus' || ext === 'mnsproj') {
     return (
       <svg width={size} height={size} viewBox="0 0 32 32" fill="none" aria-hidden="true">
@@ -2755,7 +2774,7 @@ export function Home() {
                     className={`filter-pill${filter === f.key ? ' active' : ''}`}
                     onClick={() => changeFilter(f.key)}
                   >
-                    {t(f.label)}
+                    {f.key === 'idml' ? 'IDML' : t(f.label)}
                   </button>
                 ))}
               </div>

@@ -105,6 +105,9 @@ const homeApi: HomeApi = {
   async newHtml(opts) {
     await ipcRenderer.invoke(HOME_CHANNELS.newHtml, opts)
   },
+  async newIdml(opts) {
+    await ipcRenderer.invoke(HOME_CHANNELS.newIdml, opts)
+  },
   async newPdf(opts) {
     await ipcRenderer.invoke(HOME_CHANNELS.newPdf, opts)
   },

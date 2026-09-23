@@ -9,9 +9,12 @@ import {
   transcribePageImage,
   getVisionConfig,
   saveVisionConfig,
+  parseTranscriptionToStagingLines,
   type VisionProviderConfig,
 } from './vision-service'
-import { insertTranscribedPageToEditor, scrollToWordPage } from './editor-page-sync'
+import { insertTranscribedPageToEditor, scrollToWordPage, commitStagingToDocx } from './editor-page-sync'
+import { useManuscriberStagingStore, manuscriberStagingStore, type StagingLine } from './ManuscriberStagingStore'
+import { ManuscriberStagingPanel } from './ManuscriberStagingPanel'
 import {
   IconSidebarCollapse,
   IconDocumentPdf,
@@ -170,6 +173,64 @@ function PdfThumbnailItem({ pdfDoc, pageNo, isActive, status, onClick }: PdfThum
   )
 }
 
+interface SpotlightOverlayBoxProps {
+  lineItem: StagingLine
+  isSelected: boolean
+  scaledWidth: number
+  scaledHeight: number
+}
+
+function SpotlightOverlayBox({
+  lineItem,
+  isSelected,
+  scaledWidth,
+  scaledHeight,
+}: SpotlightOverlayBoxProps) {
+  const boxRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isSelected && boxRef.current) {
+      boxRef.current.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' })
+    }
+  }, [isSelected])
+
+  if (!lineItem.bbox) return null
+  const left = lineItem.bbox[0] * (scaledWidth / 1000)
+  const top = lineItem.bbox[1] * (scaledHeight / 1000)
+  const width = lineItem.bbox[2] * (scaledWidth / 1000)
+  const height = lineItem.bbox[3] * (scaledHeight / 1000)
+
+  return (
+    <div
+      ref={boxRef}
+      className={`pdf-page-spotlight-overlay spotlight-block-${lineItem.blockType || 'syarah'} ${
+        isSelected ? 'active-highlight' : ''
+      }`}
+      style={{
+        position: 'absolute',
+        left: `${left}px`,
+        top: `${top}px`,
+        width: `${width}px`,
+        height: `${height}px`,
+        pointerEvents: 'auto',
+        cursor: 'pointer',
+      }}
+      onClick={(e) => {
+        e.stopPropagation()
+        // Clicking spotlight box opens Single-Block Focus Mode in Staging Panel
+        manuscriberStagingStore.setActiveLineId(lineItem.id, true)
+      }}
+      title={`[Blok ${lineItem.lineNumber} - ${
+        (lineItem.blockType || 'SYARAH').toUpperCase()
+      }] Klik untuk membuka Mode Fokus di Staging`}
+    >
+      <span className="spotlight-block-tag">
+        #{lineItem.lineNumber} {(lineItem.blockType || 'syarah').toUpperCase()}
+      </span>
+    </div>
+  )
+}
+
 interface PdfPageCardProps {
   pdfDoc: PDFDocumentProxy
   pageNo: number
@@ -180,6 +241,7 @@ interface PdfPageCardProps {
 }
 
 function PdfPageCard({ pdfDoc, pageNo, scale, status, onTranscribe, onVisible }: PdfPageCardProps) {
+  const stagingStore = useManuscriberStagingStore()
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [rendered, setRendered] = useState<boolean>(false)
@@ -330,12 +392,38 @@ function PdfPageCard({ pdfDoc, pageNo, scale, status, onTranscribe, onVisible }:
         </div>
       </div>
 
-      <div className="pdf-page-canvas-wrapper" style={{ width: scaledWidth, height: scaledHeight }}>
+      <div className="pdf-page-canvas-wrapper" style={{ width: scaledWidth, height: scaledHeight, position: 'relative' }}>
         <canvas ref={canvasRef} className="pdf-page-canvas" />
         {!rendered && (
           <div className="pdf-page-card-skeleton" style={{ width: scaledWidth, height: scaledHeight }}>
             <span className="spinner-mini" />
             <span>Memuat Halaman {pageNo}...</span>
+          </div>
+        )}
+
+        {/* Bi-Directional Spotlight Overlay - Filtered strictly to Target Page */}
+        {stagingStore.isOpen && stagingStore.pageNo === pageNo && stagingStore.lines.length > 0 && (
+          <div
+            className="pdf-page-spotlight-layer"
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: scaledWidth,
+              height: scaledHeight,
+              pointerEvents: 'none',
+              zIndex: 10,
+            }}
+          >
+            {stagingStore.lines.map((lineItem) => (
+              <SpotlightOverlayBox
+                key={lineItem.id}
+                lineItem={lineItem}
+                isSelected={lineItem.id === stagingStore.activeLineId}
+                scaledWidth={scaledWidth}
+                scaledHeight={scaledHeight}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -539,6 +627,11 @@ export function PdfViewerPanel({
         }
         setPageStatuses(initialMeta?.pageStatuses || {})
         setPageErrors(initialMeta?.pageErrors || {})
+        if ((initialMeta as any)?.stagingState) {
+          manuscriberStagingStore.restoreFromState((initialMeta as any).stagingState)
+        } else {
+          manuscriberStagingStore.resetStaging()
+        }
       } catch (err) {
         console.error('Failed to load PDF:', err)
         alert(`Gagal memuat file PDF: ${String(err)}`)
@@ -563,6 +656,7 @@ export function PdfViewerPanel({
             lastZoom: scale,
             pageStatuses,
             pageErrors,
+            stagingState: manuscriberStagingStore.toSerializableState(),
           }
         },
         loadPdfFromBuffer: (
@@ -610,8 +704,18 @@ export function PdfViewerPanel({
     }
   }, [loadPdfData])
 
+  const checkUnsavedBeforeAction = (): boolean => {
+    if (manuscriberStagingStore.hasUnsavedChanges()) {
+      return window.confirm(
+        'Proyek / draf staging saat ini belum disimpan. Apakah Anda yakin ingin membuka file proyek/PDF baru?'
+      )
+    }
+    return true
+  }
+
   // Native file picker (supports .pdf and .manus projects)
   const handlePickPdf = async () => {
+    if (!checkUnsavedBeforeAction()) return
     try {
       const res = await window.desktop.pickPdf()
       if (!res.canceled && res.fileData && res.name) {
@@ -657,6 +761,7 @@ export function PdfViewerPanel({
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(false)
+    if (!checkUnsavedBeforeAction()) return
     const file = e.dataTransfer.files?.[0]
     if (file) {
       const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')
@@ -679,10 +784,19 @@ export function PdfViewerPanel({
     }
   }, [])
 
+  const stagingStore = useManuscriberStagingStore()
+
   const handleSelectPage = useCallback((pageNo: number) => {
     setCurrentPage(pageNo)
     scrollToPage(pageNo)
   }, [scrollToPage])
+
+  // Sync PDF viewer viewport page automatically when staging store active pageNo changes
+  useEffect(() => {
+    if (stagingStore.isOpen && stagingStore.pageNo && stagingStore.pageNo !== currentPage) {
+      handleSelectPage(stagingStore.pageNo)
+    }
+  }, [stagingStore.isOpen, stagingStore.pageNo, currentPage, handleSelectPage])
 
   const handlePageInputSubmit = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -727,6 +841,8 @@ export function PdfViewerPanel({
     setPageErrors((prev) => ({ ...prev, [pageNo]: '' }))
 
     try {
+      const page = await pdfDoc.getPage(pageNo)
+      const vp = page.getViewport({ scale: 1.0 })
       const dataUrl = await capturePdfPageAsDataUrl(pdfDoc, pageNo, 2.0)
       const result = await transcribePageImage(dataUrl)
 
@@ -736,13 +852,18 @@ export function PdfViewerPanel({
         return
       }
 
-      insertTranscribedPageToEditor(editor, pageNo, result.html, result.isRtl)
+      // Convert result to StagingLines with exact un-padded page width & height
+      const stagingLines = parseTranscriptionToStagingLines(result.text, vp.width, vp.height)
+      manuscriberStagingStore.setLines(stagingLines, pageNo)
+      manuscriberStagingStore.setIsOpen(true)
+
       setPageStatuses((prev) => ({ ...prev, [pageNo]: 'done' }))
     } catch (err) {
       setPageStatuses((prev) => ({ ...prev, [pageNo]: 'error' }))
       setPageErrors((prev) => ({ ...prev, [pageNo]: String(err) }))
     }
   }
+
 
   // Batch transcribe by range
   const handleStartRangeTranscribe = async (pages: number[]) => {

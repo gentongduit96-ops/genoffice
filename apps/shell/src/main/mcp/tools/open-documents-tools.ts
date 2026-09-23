@@ -26,6 +26,7 @@ const FAMILY_BY_KIND: Record<Exclude<TabKind, 'home'>, EditorFamily> = {
   html: 'html',
   pdf: 'pdf',
   manuscriber: 'docx',
+  idml: 'html',
 }
 
 /** families whose live content can be read back over MCP */

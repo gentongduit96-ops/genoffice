@@ -119,6 +119,7 @@ export interface HomeApi {
   newMarkdown(opts?: NewFileOpts): Promise<void>
   /** open a blank html editor tab */
   newHtml(opts?: NewFileOpts): Promise<void>
+  newIdml(opts?: NewFileOpts): Promise<void>
   newPdf(opts?: NewFileOpts): Promise<void>
   /** open a custom manuscriber editor tab (PDF to Word AI transcription) */
   newManuscriber(opts?: NewFileOpts): Promise<void>
@@ -389,6 +390,7 @@ export const HOME_CHANNELS = {
   newSlide: 'home:new-slide',
   newMarkdown: 'home:new-markdown',
   newHtml: 'home:new-html',
+  newIdml: 'home:new-idml',
   newPdf: 'home:new-pdf',
   newManuscriber: 'home:new-manuscriber',
   openWithManuscriber: 'home:open-with-manuscriber',

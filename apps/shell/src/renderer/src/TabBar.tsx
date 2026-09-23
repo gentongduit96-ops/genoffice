@@ -129,6 +129,18 @@ function ManuscriberIcon() {
   )
 }
 
+function IdmlIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 240 240" fill="none" aria-hidden="true">
+      <rect width="240" height="240" rx="48" fill="#D6285D" />
+      <path
+        d="M75 68H97V172H75V68ZM118 68H148C172 68 188 84 188 120C188 156 172 172 148 172H118V68ZM140 88V152H146C159 152 165 141 165 120C165 99 159 88 146 88H140Z"
+        fill="#fff"
+      />
+    </svg>
+  )
+}
+
 const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
   home: <HomeIcon />,
   docs: <DocIcon />,
@@ -138,6 +150,7 @@ const KIND_ICON: Record<TabSummary['kind'], ReactElement> = {
   markdown: <MarkdownIcon />,
   html: <HtmlIcon />,
   manuscriber: <ManuscriberIcon />,
+  idml: <IdmlIcon />,
 }
 
 export function TabBar() {

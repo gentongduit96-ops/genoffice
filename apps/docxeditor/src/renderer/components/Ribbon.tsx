@@ -1,6 +1,8 @@
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import type { ChainedCommands, Editor } from '@tiptap/core'
+import { useManuscriberStagingStore, manuscriberStagingStore } from '../manuscriber/ManuscriberStagingStore'
+
 import type { Command } from '@tiptap/pm/state'
 import type { Mark, Node as PMNode, ResolvedPos } from '@tiptap/pm/model'
 import {
@@ -149,6 +151,13 @@ import {
   IconRepeatHeader,
   IconTableProperties,
   IconSave,
+  IconKeyboard,
+  IconStagingAudit,
+  IconSparkle,
+  IconDocumentText,
+  IconFormat,
+  IconSettings,
+  IconPlus,
 } from './icons'
 interface RibbonProps {
   /** App keyboard shortcuts reuse ribbon closures through here (font-size stepping keeps its coalescing) */
@@ -754,6 +763,7 @@ function RibbonInner({
   onPagePreview,
 }: RibbonProps) {
   const { t, lang } = useI18n()
+  const stagingStore = useManuscriberStagingStore()
   const collapse = useRibbonCollapse('aidocs.ribbonCollapsed')
   // The one-click AI actions need text to work on; grey them out on an empty document
   const docEmpty = !hasDoc || fs.docEmpty
@@ -3077,8 +3087,33 @@ function RibbonInner({
                       </span>
                       <span>Simpan Proyek</span>
                     </button>
+
+                    {/* Windows On-Screen Keyboard Button */}
+                    <button
+                      className="rb-big ai-entry"
+                      data-tip="Buka Windows On-Screen Keyboard (OSK)"
+                      onClick={() => void window.desktop?.openOsk?.()}
+                    >
+                      <span className="rb-big-icon" style={{ color: 'var(--colorBrandForeground1, #0f6cbd)' }}>
+                        <IconKeyboard size={24} />
+                      </span>
+                      <span>Keyboard</span>
+                    </button>
+
+                    {/* Staging Workspace Button */}
+                    <button
+                      className={`rb-big ai-entry ${stagingStore.isOpen ? 'active' : ''}`}
+                      data-tip="Buka Mode Staging Workspace (Ctrl+Shift+A)"
+                      onClick={() => manuscriberStagingStore.setIsOpen(!stagingStore.isOpen)}
+                    >
+                      <span className="rb-big-icon" style={{ color: 'var(--colorBrandForeground1, #0f6cbd)' }}>
+                        <IconStagingAudit size={24} />
+                      </span>
+                      <span>Staging</span>
+                    </button>
+
                   </div>
-                  <div className="ribbon-group-label">Proyek</div>
+                  <div className="ribbon-group-label">Manuscriber Kitab</div>
                 </div>
                 <div className="ribbon-sep" />
               </>
@@ -3097,14 +3132,14 @@ function RibbonInner({
                   </span>
                   <span>Genspark AI</span>
                 </button>
-                {/* Ringkasan AI Preset Menu */}
+                {/* Unified Pintasan AI Dropdown */}
                 <div className="rb-split-wrap">
                   <button
-                    className={`rb-big ai-entry ${dropdown === 'aiSummarizePresets' ? 'active' : ''}`}
+                    className={`rb-big ai-entry ${dropdown === 'aiUnifiedPresets' ? 'active' : ''}`}
                     disabled={docEmpty}
-                    data-tip={t('aiSummarizeBtn')}
+                    data-tip="Pintasan Presets Prompt AI (Ringkasan, Poles, Format & Custom)"
                     onClick={() =>
-                      setDropdown((v) => (v === 'aiSummarizePresets' ? null : 'aiSummarizePresets'))
+                      setDropdown((v) => (v === 'aiUnifiedPresets' ? null : 'aiUnifiedPresets'))
                     }
                   >
                     <span className="rb-big-icon">
@@ -3117,239 +3152,126 @@ function RibbonInner({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                         >
-                          <path
-                            d="M13.875 21H12H6.5C5.39543 21 4.5 20.1046 4.5 19V5C4.5 3.89543 5.39543 3 6.5 3H17.5C18.6046 3 19.5 3.89543 19.5 5V9V12V13"
-                            strokeLinecap="round"
-                          />
-                          <path d="M8.00001 7H16" strokeLinecap="round" />
-                          <path d="M8.00007 10.2032H14.0001" strokeLinecap="round" />
-                          <path d="M8.00007 13.4062H12.0001" strokeLinecap="round" />
-                          <path
-                            d="M17 14L17.2579 14.697C17.5961 15.611 17.7652 16.068 18.0986 16.4014C18.432 16.7348 18.889 16.9039 19.803 17.2421L20.5 17.5L19.803 17.7579C18.889 18.0961 18.432 18.2652 18.0986 18.5986C17.7652 18.932 17.5961 19.389 17.2579 20.303L17 21L16.7421 20.303C16.4039 19.389 16.2348 18.932 15.9014 18.5986C15.568 18.2652 15.111 18.0961 14.197 17.7579L13.5 17.5L14.197 17.2421C15.111 16.9039 15.568 16.7348 15.9014 16.4014C16.2348 16.068 16.4039 15.611 16.7421 14.697L17 14Z"
-                            strokeLinejoin="round"
-                          />
+                          <path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83" />
                         </svg>
                       </span>
                       <IconCaret />
                     </span>
-                    <span>{t('aiSummarizeBtn')}</span>
+                    <span>Pintasan AI</span>
                   </button>
-                  {dropdown === 'aiSummarizePresets' && (
-                    <div data-rb-panel="" className="layout-menu ai-preset-menu">
-                      <div className="ai-preset-menu-header">
-                        <span>Pintasan Ringkasan AI</span>
-                      </div>
-                      <div className="ai-preset-menu-list">
-                        {summarizePresets.map((preset) => (
-                          <button
-                            key={preset.id}
-                            className="ai-preset-item-btn"
-                            onClick={() => {
-                              setDropdown(null)
-                              onAiPreset(preset.instruction)
-                            }}
-                            title={preset.instruction}
-                          >
-                            <span className="ai-preset-item-title">{preset.title}</span>
-                            {preset.description && (
-                              <span className="ai-preset-item-desc">{preset.description}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="ai-preset-menu-footer">
-                        <button
-                          className="ai-preset-manage-btn"
-                          onClick={() => {
-                            setDropdown(null)
-                            onOpenPromptManager?.('ringkasan')
-                          }}
-                        >
-                          + Kelola & Tambah Prompt...
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Poles AI Preset Menu */}
-                <div className="rb-split-wrap">
-                  <button
-                    className={`rb-big ai-entry ${dropdown === 'aiPolishPresets' ? 'active' : ''}`}
-                    disabled={docEmpty}
-                    data-tip={t('aiPolishBtn')}
-                    onClick={() =>
-                      setDropdown((v) => (v === 'aiPolishPresets' ? null : 'aiPolishPresets'))
-                    }
-                  >
-                    <span className="rb-big-icon">
-                      <span className="ai-feature-icon" aria-hidden="true">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path
-                            d="M5.00012 20.7481L8.80319 20.7482L21.7482 7.80317L17.945 4L5 16.945L5.00012 20.7481Z"
-                            strokeLinejoin="round"
-                          />
-                          <path d="M15.1406 6.80469L18.9438 10.6079" />
-                          <path
-                            d="M8 3L8.22106 3.59745C8.51094 4.38087 8.65589 4.77259 8.94166 5.05833C9.22743 5.34409 9.61914 5.48903 10.4026 5.77893L11 6L10.4026 6.22107C9.61914 6.51097 9.22743 6.65592 8.94166 6.94167C8.65589 7.22741 8.51094 7.61913 8.22106 8.40255L8 9L7.77894 8.40255C7.48906 7.61913 7.34411 7.22741 7.05834 6.94167C6.77257 6.65592 6.38086 6.51097 5.59743 6.22107L5 6L5.59743 5.77893C6.38086 5.48903 6.77257 5.34409 7.05834 5.05833C7.34411 4.77259 7.48906 4.38087 7.77894 3.59745L8 3Z"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
-                      <IconCaret />
-                    </span>
-                    <span>{t('aiPolishBtn')}</span>
-                  </button>
-                  {dropdown === 'aiPolishPresets' && (
-                    <div data-rb-panel="" className="layout-menu ai-preset-menu">
-                      <div className="ai-preset-menu-header">
-                        <span>Pintasan Poles AI</span>
-                      </div>
-                      <div className="ai-preset-menu-list">
-                        {polishPresets.map((preset) => (
-                          <button
-                            key={preset.id}
-                            className="ai-preset-item-btn"
-                            onClick={() => {
-                              setDropdown(null)
-                              onAiPreset(preset.instruction)
-                            }}
-                            title={preset.instruction}
-                          >
-                            <span className="ai-preset-item-title">{preset.title}</span>
-                            {preset.description && (
-                              <span className="ai-preset-item-desc">{preset.description}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="ai-preset-menu-footer">
-                        <button
-                          className="ai-preset-manage-btn"
-                          onClick={() => {
-                            setDropdown(null)
-                            onOpenPromptManager?.('poles')
-                          }}
-                        >
-                          + Kelola & Tambah Prompt...
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Format AI Preset Menu */}
-                <div className="rb-split-wrap">
-                  <button
-                    className={`rb-big ai-entry ${dropdown === 'aiFormatPresets' ? 'active' : ''}`}
-                    disabled={docEmpty}
-                    data-tip={t('aiTidyBtn')}
-                    onClick={() =>
-                      setDropdown((v) => (v === 'aiFormatPresets' ? null : 'aiFormatPresets'))
-                    }
-                  >
-                    <span className="rb-big-icon">
-                      <span className="ai-feature-icon" aria-hidden="true">
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M4 5H20" strokeLinecap="round" />
-                          <path d="M4 9H16" strokeLinecap="round" />
-                          <path d="M4 13H11" strokeLinecap="round" />
-                          <path d="M4 17H10" strokeLinecap="round" />
-                          <path
-                            d="M17 14L17.2579 14.697C17.5961 15.611 17.7652 16.068 18.0986 16.4014C18.432 16.7348 18.889 16.9039 19.803 17.2421L20.5 17.5L19.803 17.7579C18.889 18.0961 18.432 18.2652 18.0986 18.5986C17.7652 18.932 17.5961 19.389 17.2579 20.303L17 21L16.7421 20.303C16.4039 19.389 16.2348 18.932 15.9014 18.5986C15.568 18.2652 15.111 18.0961 14.197 17.7579L13.5 17.5L14.197 17.2421C15.111 16.9039 15.568 16.7348 15.9014 16.4014C16.2348 16.068 16.4039 15.611 16.7421 14.697L17 14Z"
-                            strokeLinejoin="round"
-                          />
-                        </svg>
-                      </span>
-                      <IconCaret />
-                    </span>
-                    <span>{t('aiTidyBtn')}</span>
-                  </button>
-                  {dropdown === 'aiFormatPresets' && (
-                    <div data-rb-panel="" className="layout-menu ai-preset-menu">
-                      <div className="ai-preset-menu-header">
-                        <span>Pintasan Format AI</span>
-                      </div>
-                      <div className="ai-preset-menu-list">
-                        {formatPresets.map((preset) => (
-                          <button
-                            key={preset.id}
-                            className="ai-preset-item-btn"
-                            onClick={() => {
-                              setDropdown(null)
-                              onAiPreset(preset.instruction)
-                            }}
-                            title={preset.instruction}
-                          >
-                            <span className="ai-preset-item-title">{preset.title}</span>
-                            {preset.description && (
-                              <span className="ai-preset-item-desc">{preset.description}</span>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                      <div className="ai-preset-menu-footer">
-                        <button
-                          className="ai-preset-manage-btn"
-                          onClick={() => {
-                            setDropdown(null)
-                            onOpenPromptManager?.('format')
-                          }}
-                        >
-                          + Kelola & Tambah Prompt...
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Kelola Prompt Button */}
-                <button
-                  className="rb-big ai-entry"
-                  data-tip="Kelola & Buat Pintasan Prompt Kustom"
-                  onClick={() => onOpenPromptManager?.('all')}
-                >
-                  <span className="rb-big-icon">
-                    <span
-                      className="ai-feature-icon"
-                      aria-hidden="true"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
+                  {dropdown === 'aiUnifiedPresets' && (
+                    <div
+                      data-rb-panel=""
+                      className="layout-menu ai-preset-menu ai-unified-menu"
                     >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{ width: 22, height: 22 }}
-                      >
-                        <path d="M12 20h9" />
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-                        <path d="M15 5l3 3" />
-                      </svg>
-                    </span>
-                  </span>
-                  <span>Kelola Prompt</span>
-                </button>
+                      <div className="ai-unified-menu-scroll">
+                        {/* Section: Ringkasan AI */}
+                        <div className="ai-preset-section">
+                          <div className="ai-preset-section-header">
+                            <div className="ai-preset-section-title">
+                              <span className="ai-section-icon">
+                                <IconDocumentText size={16} />
+                              </span>
+                              <span>Ringkasan AI</span>
+                            </div>
+                          </div>
+                          <div className="ai-preset-section-items">
+                            {summarizePresets.map((preset) => (
+                              <button
+                                key={preset.id}
+                                className="ai-preset-item-btn"
+                                onClick={() => {
+                                  setDropdown(null)
+                                  onAiPreset(preset.instruction)
+                                }}
+                                title={preset.instruction}
+                              >
+                                <span className="ai-preset-item-title">{preset.title}</span>
+                                {preset.description && (
+                                  <span className="ai-preset-item-desc">{preset.description}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Section: Poles AI */}
+                        <div className="ai-preset-section">
+                          <div className="ai-preset-section-header">
+                            <div className="ai-preset-section-title">
+                              <span className="ai-section-icon">
+                                <IconSparkle size={16} />
+                              </span>
+                              <span>Poles AI</span>
+                            </div>
+                          </div>
+                          <div className="ai-preset-section-items">
+                            {polishPresets.map((preset) => (
+                              <button
+                                key={preset.id}
+                                className="ai-preset-item-btn"
+                                onClick={() => {
+                                  setDropdown(null)
+                                  onAiPreset(preset.instruction)
+                                }}
+                                title={preset.instruction}
+                              >
+                                <span className="ai-preset-item-title">{preset.title}</span>
+                                {preset.description && (
+                                  <span className="ai-preset-item-desc">{preset.description}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Section: Format AI */}
+                        <div className="ai-preset-section">
+                          <div className="ai-preset-section-header">
+                            <div className="ai-preset-section-title">
+                              <span className="ai-section-icon">
+                                <IconFormat size={16} />
+                              </span>
+                              <span>Format AI</span>
+                            </div>
+                          </div>
+                          <div className="ai-preset-section-items">
+                            {formatPresets.map((preset) => (
+                              <button
+                                key={preset.id}
+                                className="ai-preset-item-btn"
+                                onClick={() => {
+                                  setDropdown(null)
+                                  onAiPreset(preset.instruction)
+                                }}
+                                title={preset.instruction}
+                              >
+                                <span className="ai-preset-item-title">{preset.title}</span>
+                                {preset.description && (
+                                  <span className="ai-preset-item-desc">{preset.description}</span>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Footer: Single Bottom Button - Left Icon, Right Text */}
+                      <div className="ai-preset-menu-footer">
+                        <button
+                          className="ai-preset-manage-btn"
+                          onClick={() => {
+                            setDropdown(null)
+                            onOpenPromptManager?.('all')
+                          }}
+                        >
+                          <IconSettings size={16} />
+                          <span>Kelola Prompt Kustom...</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="ribbon-group-label">Genspark AI</div>
             </div>
